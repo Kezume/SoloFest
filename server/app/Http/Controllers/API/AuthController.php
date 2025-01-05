@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 
@@ -72,6 +73,15 @@ class AuthController extends Controller
     
         return response()->json([
             'message' => 'Logout berhasil!'
+        ], 200);
+    }
+
+    public function profile() {
+        $profile = Auth::user();
+
+        return response()->json([
+            'message' => 'User profile',
+            'data' => $profile
         ], 200);
     }
     

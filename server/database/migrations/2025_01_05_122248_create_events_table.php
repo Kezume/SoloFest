@@ -14,16 +14,13 @@ return new class extends Migration
         Schema::create('events', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->text('description');
+            $table->text('description')->nullable();
+            $table->date('date');
             $table->string('location');
-            $table->string('category');
-            $table->dateTime('start_time');
-            $table->dateTime('end_time');
-            $table->foreignId('organizer_id')->constrained('users')->onDelete('cascade');
-            $table->integer('capacity');
-            $table->string('image')->nullable();
-            $table->enum('status', ['active', 'completed', 'canceled'])->default('active');
+            $table->unsignedBigInteger('user_id'); // Referensi ke EO
             $table->timestamps();
+
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 
