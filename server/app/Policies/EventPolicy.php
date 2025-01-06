@@ -47,8 +47,15 @@ class EventPolicy
      */
     public function delete(User $user, Event $event): bool
     {
-         // Admin bisa menghapus semua event
-         return $user->role === 'admin';
+        // Admin bisa menghapus semua event
+        return $user->role === 'admin';
+    }
+
+    public function manage(User $user, Event $event)
+    {
+        // Admin boleh mengelola semua event
+        // EO hanya boleh mengelola event yang mereka buat
+        return $user->role === 'admin' || ($user->role === 'event_organizer' && $event->user_id === $user->id);
     }
 
     /**
