@@ -81,11 +81,6 @@ const RegisterPage = () => {
   const [isSuccess, setIsSuccess] = useState(false);
   const [cityOptions, setCityOptions] = useState<Array<{ value: string; label: string }>>([]);
 
-  // Remove these redundant states as we're using formData
-  // const [username, setUsername] = useState("");
-  // const [email, setEmail] = useState("");
-  // ...other individual states...
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -215,7 +210,6 @@ const RegisterPage = () => {
   };
 
   const renderControlButtons = () => {
-    const sectionCount = Object.keys(formSections).length;
     return (
       <div className="flex gap-4">
         {formSection > 1 && (
