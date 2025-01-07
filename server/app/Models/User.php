@@ -18,10 +18,20 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',
+        'username',
         'email',
+        'no_telp',
         'password',
-        'role'
+        'name',
+        'tanggal_lahir',
+        'jenis_kelamin',
+        'alamat_lengkap',
+        'kota_kabupaten',
+        'provinsi',
+        'kode_pos',
+        'otp',
+        'role',
+        'email_verified_at',
     ];
 
     public function events()
@@ -37,6 +47,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'token'
     ];
 
     /**
@@ -46,5 +57,6 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'tanggal_lahir' => 'date',
     ];
 }
