@@ -82,7 +82,7 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->identifier)
             ->orWhere('username', $request->identifier)
-            ->orWhere('phone', $request->identifier)
+            ->orWhere('no_telp', $request->identifier)
             ->first();
 
         if (!$user || !Hash::check($request->password, $user->password)) {

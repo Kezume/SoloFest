@@ -14,6 +14,7 @@ class Event extends Model
         'description',
         'date',
         'location',
+        'category_id',
         'user_id',
     ];
 
@@ -27,5 +28,8 @@ class Event extends Model
         return $this->hasMany(Ticket::class);
     }
 
-    
+    public function category()
+    {
+        return $this->belongsTo(EventCategory::class, 'category_id');
+    }
 }

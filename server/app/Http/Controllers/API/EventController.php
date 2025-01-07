@@ -4,8 +4,10 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use App\Models\EventCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class EventController extends Controller
@@ -50,6 +52,25 @@ class EventController extends Controller
         ]);
     }
 
+    public function getEventsByCategory($categoryId)
+    {
+        $category = EventCategory::find($categoryId);
+
+        if (!$category) {
+            return response()->json([
+                'message' => 'Kategori tidak ditemukan'
+            ], 404);
+        }
+
+        $events = Event::where('category_id', $categoryId)->get();
+
+        return response()->json([
+            'message' => 'Daftar event berdasarkan kategori',
+            'category' => $category->name,
+            'data' => $events
+        ], 200);
+    }
+
     public function store(Request $request)
     {
         $this->authorize('create', Event::class);
@@ -59,6 +80,7 @@ class EventController extends Controller
             'description' => 'nullable|string',
             'date' => 'required|date',
             'location' => 'required|string|max:255',
+            'category_id' => 'required|exists:event_categories,id', // Validasi kategori
         ]);
 
         if ($validator->fails()) {
@@ -67,18 +89,21 @@ class EventController extends Controller
                 'data' => $validator->errors()
             ], 422);
         }
+        Log::info('Request data:', $request->all());
 
         $event = Event::create([
             'name' => $request->name,
             'description' => $request->description,
             'date' => $request->date,
             'location' => $request->location,
+            'category_id' => $request->category_id, // Simpan kategori
             'user_id' => Auth::id(),
         ]);
+        
 
         return response()->json([
             'message' => 'Event created successfully.',
-            'data' => $event->load('organizer:id,name,email')
+            'data' => $event->load('organizer:id,name,email', 'category:id,name') // Muat kategori
         ], 201);
     }
 
@@ -100,6 +125,7 @@ class EventController extends Controller
             'description' => 'nullable|string',
             'date' => 'sometimes|required|date',
             'location' => 'sometimes|required|string|max:255',
+            'category_id' => 'sometimes|required|exists:event_categories,id', // Validasi kategori
         ]);
 
         if ($validator->fails()) {
@@ -113,9 +139,10 @@ class EventController extends Controller
 
         return response()->json([
             'message' => 'Event updated successfully.',
-            'data' => $event->load('organizer:id,name,email')
+            'data' => $event->load('organizer:id,name,email', 'category:id,name') // Muat kategori
         ]);
     }
+
 
     public function destroy($id)
     {
