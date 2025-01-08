@@ -102,6 +102,44 @@ class AuthController extends Controller
         ], 200);
     }
 
+    public function update(Request $request)
+    {
+        $auth = Auth::user(); // Mendapatkan pengguna yang sedang login
+
+        // Validasi data tanpa password
+        $input = Validator::make($request->all(), [
+            'username' => 'sometimes|required|string|max:50|unique:users,username,' . $auth->id,
+            'email' => 'sometimes|required|email|unique:users,email,' . $auth->id,
+            'no_telp' => 'sometimes|required|numeric|unique:users,no_telp,' . $auth->id,
+            'full_name' => 'sometimes|required|string|max:255',
+            'tanggal_lahir' => 'sometimes|required|date',
+            'jenis_kelamin' => 'sometimes|required|in:Laki-laki,Perempuan',
+            'alamat_lengkap' => 'sometimes|required|string|max:500',
+            'kota_kabupaten' => 'sometimes|required|string|max:100',
+            'provinsi' => 'sometimes|required|string|max:100',
+            'kode_pos' => 'sometimes|required|numeric',
+        ]);
+
+        if ($input->fails()) {
+            return response()->json([
+                'message' => 'Ada Kesalahan!',
+                'data' => $input->errors()
+            ], 422);
+        }
+
+        // Validasi lolos
+        $validatedData = $input->validated();
+
+        // Update data pengguna tanpa password
+        $auth->update($validatedData);
+
+        return response()->json([
+            'message' => 'Profil berhasil diperbarui!',
+            'data' => $auth
+        ], 200);
+    }
+
+
     public function logout(Request $request)
     {
         $request->user()->Tokens()->delete();
@@ -154,57 +192,55 @@ class AuthController extends Controller
     }
 
     public function refreshOtp(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        'user_id' => 'required|exists:users,id',
-    ]);
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|exists:users,id',
+        ]);
 
-    if ($validator->fails()) {
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $user = User::find($request->user_id);
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'User tidak ditemukan.',
+            ], 404);
+        }
+
+        // Periksa apakah user sudah terverifikasi
+        if ($user->email_verified_at) {
+            return response()->json([
+                'message' => 'Akun sudah diverifikasi. Tidak perlu OTP lagi.',
+            ], 400);
+        }
+
+        // Periksa batasan waktu refresh OTP (misalnya 5 menit)
+        if ($user->otp_created_at && $user->otp_created_at->diffInMinutes(now()) < 5) {
+            return response()->json([
+                'message' => 'Anda hanya dapat merefresh OTP setiap 5 menit.',
+            ], 429);
+        }
+
+        // Generate OTP baru
+        $otp = rand(100000, 999999);
+
+        // Perbarui OTP di database
+        $user->update([
+            'otp' => $otp,
+            'otp_created_at' => now(),
+        ]);
+
+        // Kirim email dengan OTP baru
+        Mail::send('emails.otp', ['otp' => $otp, 'user_id' => $user->id], function ($message) use ($user) {
+            $message->to($user->email)->subject('Kode OTP Verifikasi Anda (Refresh)');
+        });
+
         return response()->json([
-            'errors' => $validator->errors(),
-        ], 422);
+            'message' => 'Kode OTP baru telah dikirim ke email Anda.',
+        ], 200);
     }
-
-    $user = User::find($request->user_id);
-
-    if (!$user) {
-        return response()->json([
-            'message' => 'User tidak ditemukan.',
-        ], 404);
-    }
-
-    // Periksa apakah user sudah terverifikasi
-    if ($user->email_verified_at) {
-        return response()->json([
-            'message' => 'Akun sudah diverifikasi. Tidak perlu OTP lagi.',
-        ], 400);
-    }
-
-    // Periksa batasan waktu refresh OTP (misalnya 5 menit)
-    if ($user->otp_created_at && $user->otp_created_at->diffInMinutes(now()) < 5) {
-        return response()->json([
-            'message' => 'Anda hanya dapat merefresh OTP setiap 5 menit.',
-        ], 429);
-    }
-
-    // Generate OTP baru
-    $otp = rand(100000, 999999);
-
-    // Perbarui OTP di database
-    $user->update([
-        'otp' => $otp,
-        'otp_created_at' => now(),
-    ]);
-
-    // Kirim email dengan OTP baru
-    Mail::send('emails.otp', ['otp' => $otp, 'user_id' => $user->id], function ($message) use ($user) {
-        $message->to($user->email)->subject('Kode OTP Verifikasi Anda (Refresh)');
-    });
-
-    return response()->json([
-        'message' => 'Kode OTP baru telah dikirim ke email Anda.',
-    ], 200);
 }
-
-}
-

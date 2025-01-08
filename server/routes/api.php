@@ -26,7 +26,7 @@ Route::post('/refresh-otp', [AuthController::class, 'refreshOtp']);
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/users/profile', [AuthController::class, 'profile']);
-    
+    Route::put('/users/profile/update', [AuthController::class, 'update']);
     Route::post('/logout', [AuthController::class, 'logout']);
     
 });
