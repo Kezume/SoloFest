@@ -9,9 +9,16 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Tymon\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\Exceptions\JWTException;
 
 class AuthController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth:api', ['except' => ['login', 'register', 'verifyOtp', 'refreshOtp']]);
+    }
+
     public function register(Request $request)
     {
         $input = Validator::make($request->all(), [
@@ -70,62 +77,87 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'identifier' => 'required', // Bisa berupa email, username, atau nomor telepon
+            'identifier' => 'required',
             'password' => 'required|min:8'
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'data' => $validator->errors()
-            ], 402);
+            ], 422);
         }
 
+        $credentials = [];
         $user = User::where('email', $request->identifier)
             ->orWhere('username', $request->identifier)
             ->orWhere('no_telp', $request->identifier)
             ->first();
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (!$user) {
             return response()->json([
-                'message' => 'Identifier atau Password salah!'
+                'message' => 'User tidak ditemukan!'
             ], 401);
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
+        $credentials['email'] = $user->email;
+        $credentials['password'] = $request->password;
 
-        return response()->json([
-            'message' => 'Login berhasil!',
-            'data' => [
-                'user' => $user,
-                'token' => $token
-            ]
-        ], 200);
+        if (!$token = auth('api')->attempt($credentials)) {
+            return response()->json([
+                'message' => 'Password salah!'
+            ], 401);
+        }
+
+        return $this->respondWithToken($token);
     }
 
-    public function logout(Request $request)
+    public function logout()
     {
-        $request->user()->Tokens()->delete();
-        // $request->user()->currentAccessToken()->delete();
+        auth('api')->logout();
 
         return response()->json([
             'message' => 'Logout berhasil!'
         ], 200);
     }
 
+    protected function respondWithToken($token)
+    {
+        return response()->json([
+            'message' => 'Login berhasil!',
+            'data' => [
+                'user' => auth('api')->user(),
+                'access_token' => $token,
+                'token_type' => 'bearer',
+                'expires_in' => config('jwt.ttl') * 60 // Gets TTL from config
+            ]
+        ]);
+    }
+
+    public function refresh()
+    {
+          try {
+            $token = JWTAuth::parseToken()->refresh();
+            return $this->respondWithToken($token);
+        } catch (JWTException $e) {
+            return response()->json([
+                'message' => 'Could not refresh token',
+                'error' => $e->getMessage()
+            ], 401);
+        }
+    }
+
     public function profile()
     {
-        $profile = Auth::user();
-
         return response()->json([
             'message' => 'User profile',
-            'data' => $profile
-        ], 200);
+            'data' => auth('api')->user()
+        ]);
     }
 
     public function verifyOtp(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'user_id' => 'required|exists:users,id',
+            'email' => 'required|email|exists:users,email', // Ubah validasi ke email
             'otp' => 'required|numeric',
         ]);
 
@@ -135,7 +167,7 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $user = User::find($request->user_id);
+        $user = User::where('email', $request->email)->first(); // Cari user berdasarkan email
 
         if (!$user || $request->otp != $user->otp) {
             return response()->json([
@@ -154,57 +186,56 @@ class AuthController extends Controller
     }
 
     public function refreshOtp(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        'user_id' => 'required|exists:users,id',
-    ]);
+    {
+        $validator = Validator::make($request->all(), [
+            'user_id' => 'required|exists:users,id',
+        ]);
 
-    if ($validator->fails()) {
+        if ($validator->fails()) {
+            return response()->json([
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $user = User::find($request->user_id);
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'User tidak ditemukan.',
+            ], 404);
+        }
+
+        // Periksa apakah user sudah terverifikasi
+        if ($user->email_verified_at) {
+            return response()->json([
+                'message' => 'Akun sudah diverifikasi. Tidak perlu OTP lagi.',
+            ], 400);
+        }
+
+        // Periksa batasan waktu refresh OTP (misalnya 5 menit)
+        if ($user->otp_created_at && $user->otp_created_at->diffInMinutes(now()) < 5) {
+            return response()->json([
+                'message' => 'Anda hanya dapat merefresh OTP setiap 5 menit.',
+            ], 429);
+        }
+
+        // Generate OTP baru
+        $otp = rand(100000, 999999);
+
+        // Perbarui OTP di database
+        $user->update([
+            'otp' => $otp,
+            'otp_created_at' => now(),
+        ]);
+
+        // Kirim email dengan OTP baru
+        Mail::send('emails.otp', ['otp' => $otp, 'user_id' => $user->id], function ($message) use ($user) {
+            $message->to($user->email)->subject('Kode OTP Verifikasi Anda (Refresh)');
+        });
+
         return response()->json([
-            'errors' => $validator->errors(),
-        ], 422);
+            'message' => 'Kode OTP baru telah dikirim ke email Anda.',
+        ], 200);
     }
-
-    $user = User::find($request->user_id);
-
-    if (!$user) {
-        return response()->json([
-            'message' => 'User tidak ditemukan.',
-        ], 404);
-    }
-
-    // Periksa apakah user sudah terverifikasi
-    if ($user->email_verified_at) {
-        return response()->json([
-            'message' => 'Akun sudah diverifikasi. Tidak perlu OTP lagi.',
-        ], 400);
-    }
-
-    // Periksa batasan waktu refresh OTP (misalnya 5 menit)
-    if ($user->otp_created_at && $user->otp_created_at->diffInMinutes(now()) < 5) {
-        return response()->json([
-            'message' => 'Anda hanya dapat merefresh OTP setiap 5 menit.',
-        ], 429);
-    }
-
-    // Generate OTP baru
-    $otp = rand(100000, 999999);
-
-    // Perbarui OTP di database
-    $user->update([
-        'otp' => $otp,
-        'otp_created_at' => now(),
-    ]);
-
-    // Kirim email dengan OTP baru
-    Mail::send('emails.otp', ['otp' => $otp, 'user_id' => $user->id], function ($message) use ($user) {
-        $message->to($user->email)->subject('Kode OTP Verifikasi Anda (Refresh)');
-    });
-
-    return response()->json([
-        'message' => 'Kode OTP baru telah dikirim ke email Anda.',
-    ], 200);
-}
-
 }
 

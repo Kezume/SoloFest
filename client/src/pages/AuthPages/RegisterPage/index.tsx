@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Button from "../../../components/elements/Button";
 import InputFormFragment from "../../../components/fragments/InputFormFragment";
 import AuthLayout from "../../../components/layouts/AuthLayout";
+import axios from "axios";
 
 const provinces = [
   { value: "jakarta", label: "DKI Jakarta" },
@@ -31,18 +32,18 @@ const citiesByProvince: Record<string, Array<{ value: string; label: string }>> 
 };
 
 interface FormData {
-  name: string;
+  username: string;
   email: string;
-  phone: string;
+  no_telp: string;
   password: string;
   kon: string;
-  fullName: string;
-  birthDate: string;
-  gender: string;
-  address: string;
-  city: string;
-  province: string;
-  postalCode: string;
+  full_name: string;
+  tanggal_lahir: string;
+  jenis_kelamin: string;
+  alamat_lengkap: string;
+  kota_kabupaten: string;
+  provinsi: string;
+  kode_pos: string;
   otpCode: string;
 }
 
@@ -57,21 +58,20 @@ const RegisterPage = () => {
   const [formSection, setFormSection] = useState(1);
   const [formData, setFormData] = useState<FormData>({
     // Section 1
-    name: "",
+    username: "",
     email: "",
-    phone: "",
+    no_telp: "",
     password: "",
     kon: "",
     // Section 2
-    fullName: "",
-    birthDate: "",
-    gender: "",
-    address: "",
-    city: "",
-    province: "",
-    postalCode: "",
-
-    // section 3
+    full_name: "",
+    tanggal_lahir: "",
+    jenis_kelamin: "",
+    alamat_lengkap: "",
+    kota_kabupaten: "",
+    provinsi: "",
+    kode_pos: "",
+    // Section 3
     otpCode: "",
   });
 
@@ -88,9 +88,9 @@ const RegisterPage = () => {
       [name]: value,
     }));
 
-    if (name === "province") {
+    if (name === "provinsi") {
       setCityOptions(citiesByProvince[value] || []);
-      setFormData((prev) => ({ ...prev, city: "" })); // Reset city when province changes
+      setFormData((prev) => ({ ...prev, kota_kabupaten: "" })); // Reset city when province changes
     }
   };
 
@@ -99,8 +99,12 @@ const RegisterPage = () => {
 
     switch (section) {
       case 1:
-        if (!formData.name || !formData.email || !formData.phone || !formData.password || !formData.kon) {
+        if (!formData.username || !formData.email || !formData.no_telp || !formData.password || !formData.kon) {
           setError("Semua field harus diisi");
+          return false;
+        }
+        if (formData.password.length < 8) {
+          setError("Password harus minimal 8 karakter");
           return false;
         }
         if (formData.password !== formData.kon) {
@@ -114,7 +118,7 @@ const RegisterPage = () => {
         break;
 
       case 2:
-        if (!formData.fullName || !formData.birthDate || !formData.gender || !formData.province || !formData.city || !formData.address || !formData.postalCode) {
+        if (!formData.full_name || !formData.tanggal_lahir || !formData.jenis_kelamin || !formData.provinsi || !formData.kota_kabupaten || !formData.alamat_lengkap || !formData.kode_pos) {
           setError("Semua field harus diisi");
           return false;
         }
@@ -134,34 +138,79 @@ const RegisterPage = () => {
   const handleNextStep = async () => {
     try {
       setIsLoading(true);
+      setError(null);
 
       if (!validateSection(formSection)) {
+        setIsLoading(false);
         return;
       }
 
-      // Save current section data
-      const currentData = JSON.stringify(formData);
-      localStorage.setItem(`registerStep${formSection}`, currentData);
+      // When completing section 2, send registration data
+      if (formSection === 2) {
+        try {
+          const registerData = {
+            username: formData.username,
+            email: formData.email,
+            no_telp: formData.no_telp,
+            password: formData.password,
+            password_confirmation: formData.kon,
+            full_name: formData.full_name,
+            tanggal_lahir: formData.tanggal_lahir,
+            jenis_kelamin: formData.jenis_kelamin,
+            alamat_lengkap: formData.alamat_lengkap,
+            kota_kabupaten: formData.kota_kabupaten,
+            provinsi: formData.provinsi,
+            kode_pos: formData.kode_pos,
+            role: "member",
+          };
 
-      if (formSection < 3) {
-        setFormSection((prev) => prev + 1);
-      } else {
-        // Final submission
-        const allData = {
-          ...JSON.parse(localStorage.getItem("registerStep1") || "{}"),
-          ...JSON.parse(localStorage.getItem("registerStep2") || "{}"),
-          ...JSON.parse(localStorage.getItem("registerStep3") || "{}"),
-        };
+          const registerResponse = await axios.post("http://localhost:8000/api/register", registerData);
 
-        // Here you would make your API call
-        // await apiRegister(allData);
+          if (registerResponse.data.message) {
+            setFormSection(3);
+            // Show registration success message
+            setError(registerResponse.data.message);
+          }
+        } catch (error) {
+          if (axios.isAxiosError(error) && error.response) {
+            if (error.response.status === 422) {
+              const validationErrors = error.response.data.data;
+              const errorMessages = Object.values(validationErrors).flat().join("\n");
+              setError(errorMessages);
+            } else {
+              setError(error.response.data.message || "Ada Kesalahan!");
+            }
+          }
+          return;
+        }
+      }
 
-        setIsSuccess(true);
+      // Handle OTP verification on final step
+      if (formSection === 3) {
+        try {
+          const verifyResponse = await axios.post("http://localhost:8000/api/verify-otp", {
+            email: formData.email,
+            otp: formData.otpCode,
+          });
 
-        // Clean up stored data
-        localStorage.removeItem("registerStep1");
-        localStorage.removeItem("registerStep2");
-        localStorage.removeItem("registerStep3");
+          if (verifyResponse.data.message === "Email berhasil diverifikasi.") {
+            setIsSuccess(true);
+            // Optionally redirect to login page
+            setTimeout(() => {
+              window.location.href = "/login";
+            }, 2000);
+          }
+        } catch (error) {
+          if (axios.isAxiosError(error) && error.response) {
+            setError(error.response.data.message || "OTP tidak valid.");
+          }
+          return;
+        }
+      }
+
+      // Only proceed to next section for step 1
+      if (formSection === 1) {
+        setFormSection(2);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Terjadi kesalahan");
@@ -170,43 +219,71 @@ const RegisterPage = () => {
     }
   };
 
+  // Update refresh OTP functionality
+  const handleRefreshOtp = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const refreshResponse = await axios.post("http://localhost:8000/api/refresh-otp", {
+        email: formData.email, // Change to use email instead of user_id
+      });
+
+      if (refreshResponse.data.message) {
+        setError(refreshResponse.data.message);
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        if (error.response.status === 429) {
+          setError("Anda hanya dapat merefresh OTP setiap 5 menit.");
+        } else if (error.response.status === 400) {
+          setError("Akun sudah diverifikasi. Tidak perlu OTP lagi.");
+        } else {
+          setError(error.response.data.message || "Gagal memperbarui OTP");
+        }
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const formSections: Record<number, FormField[]> = {
     1: [
-      { name: "name", label: "Nama Pengguna", type: "text" },
+      { name: "username", label: "Nama Pengguna", type: "text" },
       { name: "email", label: "Email", type: "email" },
-      { name: "phone", label: "No. Telp", type: "text" },
+      { name: "no_telp", label: "No. Telp", type: "text" },
       { name: "password", label: "Password", type: "password" },
       { name: "kon", label: "Konfirmasi Password", type: "password" },
     ],
     2: [
-      { name: "fullName", label: "Nama Lengkap" },
-      { name: "birthDate", label: "Tanggal Lahir", type: "date" },
+      { name: "full_name", label: "Nama Lengkap" },
+      { name: "tanggal_lahir", label: "Tanggal Lahir", type: "date" },
       {
-        name: "gender",
+        name: "jenis_kelamin",
         label: "Jenis Kelamin",
         type: "select",
         options: [
-          { value: "male", label: "Laki-laki" },
-          { value: "female", label: "Perempuan" },
+          { value: "Laki-laki", label: "Laki-laki" },
+          { value: "Perempuan", label: "Perempuan" },
         ],
       },
       {
-        name: "province",
+        name: "provinsi",
         label: "Provinsi",
         type: "select",
         options: provinces,
       },
       {
-        name: "city",
+        name: "kota_kabupaten",
         label: "Kota/Kabupaten",
         type: "select",
         options: cityOptions,
       },
-      { name: "postalCode", label: "Kode Pos" },
-      { name: "address", label: "Alamat Lengkap", type: "textarea" },
+      { name: "kode_pos", label: "Kode Pos" },
+      { name: "alamat_lengkap", label: "Alamat Lengkap", type: "textarea" },
     ],
 
-    3: [{ name: "otpCode", label: "OTP Code" }],
+    3: [{ name: "otpCode", label: "Masukkan Kode OTP" }],
   };
 
   const renderControlButtons = () => {
@@ -217,8 +294,13 @@ const RegisterPage = () => {
             Sebelumnya
           </Button>
         )}
-        <Button type="button" buttonStyle="bg-primary py-2 px-6 rounded text-white" onClick={handleNextStep} disabled={isLoading}>
-          {formSection === 3 ? "Selesai" : "Selanjutnya"}
+        {formSection === 3 && (
+          <Button type="button" buttonStyle="bg-blue-500 py-2 px-6 rounded text-white" onClick={handleRefreshOtp} disabled={isLoading}>
+            Kirim Ulang OTP
+          </Button>
+        )}
+        <Button type="button" buttonStyle={`bg-primary py-2 px-6 rounded text-white`} onClick={handleNextStep} disabled={isLoading}>
+          {formSection === 3 ? "Verifikasi" : "Selanjutnya"}
         </Button>
       </div>
     );
@@ -233,11 +315,11 @@ const RegisterPage = () => {
             key={element.name}
             className={`
             ${element.type === "textarea" ? "md:col-span-2" : ""} 
-            ${element.name === "address" ? "md:col-span-2" : ""}
-            ${element.name === "fullName" ? "md:col-span-2" : ""}
-            ${element.name === "birthDate" ? "md:col-span-2" : ""}
-            ${element.name === "city" ? "md:col-span-2" : ""}
-            ${element.name === "postalCode" ? "md:col-span-2" : ""}
+            ${element.name === "alamat_lengkap" ? "md:col-span-2" : ""}
+            ${element.name === "full_name" ? "md:col-span-2" : ""}
+            ${element.name === "tanggal_lahir" ? "md:col-span-2" : ""}
+            ${element.name === "kota_kabupaten" ? "md:col-span-2" : ""}
+            ${element.name === "kode_pos" ? "md:col-span-2" : ""}
           `}
           >
             <InputFormFragment type={element.type || "text"} name={element.name} placeholder="" value={formData[element.name]} onChange={handleInputChange} options={element.options}>
@@ -259,7 +341,7 @@ const RegisterPage = () => {
         e.preventDefault();
       }}
     >
-      <div className="w-full max-w-4xl mx-auto space-y-6">
+      <div className="w-full max-w-4xl  space-y-6">
         {renderFormFields()}
         <div className="w-full flex justify-between items-center mt-8">
           <div className="flex gap-2">
