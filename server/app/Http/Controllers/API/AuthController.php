@@ -120,6 +120,8 @@ class AuthController extends Controller
         ], 200);
     }
 
+    
+
     protected function respondWithToken($token)
     {
         return response()->json([
@@ -238,4 +240,3 @@ class AuthController extends Controller
         ], 200);
     }
 }
-
