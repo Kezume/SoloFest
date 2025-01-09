@@ -130,6 +130,7 @@ class AuthController extends Controller
         // Validasi lolos
         $validatedData = $input->validated();
 
+        // abaikan garis merah
         // Update data pengguna tanpa password
         $auth->update($validatedData);
 
