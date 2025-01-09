@@ -12,7 +12,7 @@ const LoginPage = () => {
   const loginHandler = async (e: any) => {
     e.preventDefault();
     try {
-      axios.post("http://localhost:8000/api/login", {
+      axios.post("http://localhost:8000/api/auth/login", {
         identifier: formData.data,
         password: formData.password,
       });
