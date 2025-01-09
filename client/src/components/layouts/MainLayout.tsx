@@ -9,7 +9,7 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   return (
     <>
-      <div className="container px-20">
+      <div className="w-full container mx-auto px-5">
         <NavbarFragment />
         {children}
       </div>

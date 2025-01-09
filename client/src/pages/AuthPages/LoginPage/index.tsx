@@ -1,15 +1,39 @@
 import { useState } from "react";
 import AuthLayout from "../../../components/layouts/AuthLayout";
 import InputFormFragment from "../../../components/fragments/InputFormFragment";
+import axios from "axios";
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
-    email: "",
+    data: "",
     password: "",
   });
+
+  const loginHandler = async (e: any) => {
+    e.preventDefault();
+    try {
+      const response = await axios.post(
+        "http://localhost:8000/api/login",
+        {
+          identifier: formData.data,
+          password: formData.password,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const token = response.data.token;
+      localStorage.setItem("authToken", token);
+    } catch (error) {
+      console.error(error);
+    }
+  };
   return (
-    <AuthLayout onSubmit={() => {}} title="Login">
-      <InputFormFragment type="text" name="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} placeholder="">
+    <AuthLayout onSubmit={loginHandler} title="Login">
+      <InputFormFragment type="text" name="email" value={formData.data} onChange={(e) => setFormData({ ...formData, data: e.target.value })} placeholder="">
         Email / Username / No. Handphone
       </InputFormFragment>
 
