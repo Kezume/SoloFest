@@ -18,15 +18,19 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/verify-otp', [AuthController::class, 'verifyOtp']);
-Route::post('/refresh-otp', [AuthController::class, 'refreshOtp']);
-
+Route::group(['middleware' => 'api', 'prefix' => 'auth'], function () {
+    Route::post('login', [AuthController::class, 'login']);
+    Route::post('register', [AuthController::class, 'register']);
+    Route::post('logout', [AuthController::class, 'logout']);
+    Route::post('refresh', [AuthController::class, 'refresh']);
+    Route::get('profile', [AuthController::class, 'profile']);
+    Route::post('verify-otp', [AuthController::class, 'verifyOtp']);
+    Route::post('refresh-otp', [AuthController::class, 'refreshOtp']);
+});
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/users/profile', [AuthController::class, 'profile']);
-    Route::put('/users/profile/update', [AuthController::class, 'update']);
+    
     Route::post('/logout', [AuthController::class, 'logout']);
     
 });

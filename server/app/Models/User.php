@@ -7,10 +7,13 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Tymon\JWTAuth\Contracts\JWTSubject;
+use Illuminate\Database\Eloquent\Model;
 
 class User extends Authenticatable implements JWTSubject
 {
     use HasApiTokens, HasFactory, Notifiable;
+
+    protected $table = 'users';
 
     /**
      * The attributes that are mass assignable.
@@ -31,6 +34,7 @@ class User extends Authenticatable implements JWTSubject
         'kode_pos',
         'otp',
         'role',
+        'otp_created_at',
         'email_verified_at',
     ];
 
@@ -81,5 +85,10 @@ class User extends Authenticatable implements JWTSubject
             'role' => $this->role,
             'email' => $this->email
         ];
+    }
+
+    public static function updateUser($id, array $data)
+    {
+        return static::where('id', $id)->update($data);
     }
 }

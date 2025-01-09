@@ -19,6 +19,60 @@ class AuthController extends Controller
         $this->middleware('auth:api', ['except' => ['login', 'register', 'verifyOtp', 'refreshOtp']]);
     }
 
+
+    public function update(Request $request)
+    {
+        $user = Auth::user();
+        
+        if (!$user) {
+            return response()->json([
+                'message' => 'User tidak ditemukan!'
+            ], 404);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'username' => 'sometimes|required|string|max:50|unique:users,username,' . $user->id,
+            'email' => 'sometimes|required|email|unique:users,email,' . $user->id,
+            'no_telp' => 'sometimes|required|numeric|unique:users,no_telp,' . $user->id,
+            'full_name' => 'sometimes|required|string|max:255',
+            'tanggal_lahir' => 'sometimes|required|date',
+            'jenis_kelamin' => 'sometimes|required|in:Laki-laki,Perempuan',
+            'alamat_lengkap' => 'sometimes|required|string|max:500',
+            'kota_kabupaten' => 'sometimes|required|string|max:100',
+            'provinsi' => 'sometimes|required|string|max:100',
+            'kode_pos' => 'sometimes|required|numeric',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Ada Kesalahan!',
+                'data' => $validator->errors()
+            ], 422);
+        }
+
+        $data = $validator->validated();
+        
+        if (isset($data['full_name'])) {
+            $data['name'] = $data['full_name'];
+            unset($data['full_name']);
+        }
+
+        try {
+            User::updateUser($user->id, $data);
+            $updatedUser = User::find($user->id);
+
+            return response()->json([
+                'message' => 'Profil berhasil diperbarui!',
+                'data' => $updatedUser
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal memperbarui profil!',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function register(Request $request)
     {
         $input = Validator::make($request->all(), [
@@ -74,7 +128,7 @@ class AuthController extends Controller
         ], 201);
     }
 
-    public function login(Request $request)
+    public function  login(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'identifier' => 'required',

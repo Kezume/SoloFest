@@ -12,21 +12,10 @@ const LoginPage = () => {
   const loginHandler = async (e: any) => {
     e.preventDefault();
     try {
-      const response = await axios.post(
-        "http://localhost:8000/api/login",
-        {
-          identifier: formData.data,
-          password: formData.password,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      const token = response.data.token;
-      localStorage.setItem("authToken", token);
+      axios.post("http://localhost:8000/api/login", {
+        identifier: formData.data,
+        password: formData.password,
+      });
     } catch (error) {
       console.error(error);
     }
