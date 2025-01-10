@@ -244,7 +244,7 @@ class AuthController extends Controller
     public function refreshOtp(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'user_id' => 'required|exists:users,id',
+            'email' => 'required|email|exists:users,email', // Ubah validasi ke email
         ]);
 
         if ($validator->fails()) {
