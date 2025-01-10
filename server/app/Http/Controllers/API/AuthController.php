@@ -154,6 +154,8 @@ class AuthController extends Controller
         }
 
         $credentials['email'] = $user->email;
+        $credentials['username'] = $user->username;
+        $credentials['no_telp'] = $user->no_telp;
         $credentials['password'] = $request->password;
 
         if (!$token = auth('api')->attempt($credentials)) {
@@ -173,8 +175,6 @@ class AuthController extends Controller
             'message' => 'Logout berhasil!'
         ], 200);
     }
-
-    
 
     protected function respondWithToken($token)
     {

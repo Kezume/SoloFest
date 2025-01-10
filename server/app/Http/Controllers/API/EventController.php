@@ -4,32 +4,34 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
-use App\Models\EventCategory;
+use App\Models\Ticket;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class EventController extends Controller
 {
-    public function index()
+    public function index($eventId)
     {
-        // EO hanya melihat event mereka, Admin bisa melihat semua
-        if (Auth::user()->role === 'event_organizer') {
-            $events = Event::where('user_id', Auth::id())->with('organizer:id,name,email')->get();
-        } else {
-            $events = Event::with('organizer:id,name,email')->get();
+        $event = Event::find($eventId);
+
+        if (!$event) {
+            return response()->json([
+                'message' => 'Event not found',
+                'data' => null
+            ], 404);
         }
 
+        $tickets = $event->tickets;
+
         return response()->json([
-            'message' => 'Events fetched successfully.',
-            'data' => $events
+            'message' => 'Tickets fetched successfully.',
+            'data' => $tickets
         ]);
     }
 
-    public function show($id)
+    public function store(Request $request, $eventId)
     {
-        $event = Event::with('organizer:id,name,email')->find($id);
+        $event = Event::find($eventId);
 
         if (!$event) {
             return response()->json([
@@ -38,49 +40,13 @@ class EventController extends Controller
             ], 404);
         }
 
-        // Pastikan EO hanya bisa melihat event mereka
-        if (Auth::user()->role === 'event_organizer' && $event->user_id !== Auth::id()) {
-            return response()->json([
-                'message' => 'You are not authorized to view this event.',
-                'data' => null
-            ], 403);
-        }
-
-        return response()->json([
-            'message' => 'Event fetched successfully.',
-            'data' => $event
-        ]);
-    }
-
-    public function getEventsByCategory($categoryId)
-    {
-        $category = EventCategory::find($categoryId);
-
-        if (!$category) {
-            return response()->json([
-                'message' => 'Kategori tidak ditemukan'
-            ], 404);
-        }
-
-        $events = Event::where('category_id', $categoryId)->get();
-
-        return response()->json([
-            'message' => 'Daftar event berdasarkan kategori',
-            'category' => $category->name,
-            'data' => $events
-        ], 200);
-    }
-
-    public function store(Request $request)
-    {
-        $this->authorize('create', Event::class);
+        // Cek otorisasi untuk membuat tiket
+        $this->authorize('create', [Ticket::class, $event]);
 
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'date' => 'required|date',
-            'location' => 'required|string|max:255',
-            'category_id' => 'required|exists:event_categories,id', // Validasi kategori
+            'type' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'quantity' => 'required|integer|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -89,43 +55,33 @@ class EventController extends Controller
                 'data' => $validator->errors()
             ], 422);
         }
-        Log::info('Request data:', $request->all());
 
-        $event = Event::create([
-            'name' => $request->name,
-            'description' => $request->description,
-            'date' => $request->date,
-            'location' => $request->location,
-            'category_id' => $request->category_id, // Simpan kategori
-            'user_id' => Auth::id(),
-        ]);
-        
+        $ticket = $event->tickets()->create($validator->validated());
 
         return response()->json([
-            'message' => 'Event created successfully.',
-            'data' => $event->load('organizer:id,name,email', 'category:id,name') // Muat kategori
+            'message' => 'Ticket created successfully.',
+            'data' => $ticket
         ], 201);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, $eventId, $ticketId)
     {
-        $event = Event::find($id);
+        $ticket = Ticket::where('event_id', $eventId)->find($ticketId);
 
-        if (!$event) {
+        if (!$ticket) {
             return response()->json([
-                'message' => 'Event not found.',
+                'message' => 'Ticket not found.',
                 'data' => null
             ], 404);
         }
 
-        $this->authorize('update', $event);
+        // Cek otorisasi untuk mengupdate tiket
+        $this->authorize('update', $ticket);
 
         $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|required|string|max:255',
-            'description' => 'nullable|string',
-            'date' => 'sometimes|required|date',
-            'location' => 'sometimes|required|string|max:255',
-            'category_id' => 'sometimes|required|exists:event_categories,id', // Validasi kategori
+            'type' => 'sometimes|required|string|max:255',
+            'price' => 'sometimes|required|numeric|min:0',
+            'quantity' => 'sometimes|required|integer|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -135,32 +91,32 @@ class EventController extends Controller
             ], 422);
         }
 
-        $event->update($validator->validated());
+        $ticket->update($validator->validated());
 
         return response()->json([
-            'message' => 'Event updated successfully.',
-            'data' => $event->load('organizer:id,name,email', 'category:id,name') // Muat kategori
+            'message' => 'Ticket updated successfully.',
+            'data' => $ticket
         ]);
     }
 
-
-    public function destroy($id)
+    public function destroy($eventId, $ticketId)
     {
-        $event = Event::find($id);
+        $ticket = Ticket::where('event_id', $eventId)->find($ticketId);
 
-        if (!$event) {
+        if (!$ticket) {
             return response()->json([
-                'message' => 'Event not found.',
+                'message' => 'Ticket not found.',
                 'data' => null
             ], 404);
         }
 
-        $this->authorize('delete', $event);
+        // Cek otorisasi untuk menghapus tiket
+        $this->authorize('delete', $ticket);
 
-        $event->delete();
+        $ticket->delete();
 
         return response()->json([
-            'message' => 'Event deleted successfully.',
+            'message' => 'Ticket deleted successfully.',
             'data' => null
         ]);
     }

@@ -87,6 +87,11 @@ class User extends Authenticatable implements JWTSubject
         ];
     }
 
+    public function purchases()
+    {
+        return $this->hasMany(Purchase::class);
+    }
+
     public static function updateUser($id, array $data)
     {
         return static::where('id', $id)->update($data);
