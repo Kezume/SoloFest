@@ -3,6 +3,7 @@
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\EventCategoryController;
 use App\Http\Controllers\API\EventController;
+use App\Http\Controllers\API\PurchaseController;
 use App\Http\Controllers\API\TicketController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -28,11 +29,13 @@ Route::group(['middleware' => 'api', 'prefix' => 'auth'], function () {
     Route::post('refresh-otp', [AuthController::class, 'refreshOtp']);
 });
 
-Route::middleware(['auth:sanctum'])->group(function () {
+Route::middleware(['middleware' => 'api'])->group(function () {
     Route::get('/users/profile', [AuthController::class, 'profile']);
     
     Route::post('/logout', [AuthController::class, 'logout']);
-    
+
+    Route::post('/tickets/{ticketId}/purchase', [PurchaseController::class, 'store']);
+    Route::get('/purchases', [PurchaseController::class, 'index']);
 });
 
 Route::prefix('events')->group(function () {
@@ -41,7 +44,7 @@ Route::prefix('events')->group(function () {
     Route::get('/category/{categoryId}', [EventController::class, 'getEventsByCategory']);
     Route::get('/{eventId}/tickets', [TicketController::class, 'index']);
     
-    Route::middleware(['auth:sanctum', 'role:admin,event_organizer'])->group(function () {
+    Route::middleware(['middleware' => 'api', 'role:admin,event_organizer'])->group(function () {
         Route::post('/', [EventController::class, 'store']);
         Route::put('/{id}', [EventController::class, 'update']);
         Route::delete('/{id}', [EventController::class, 'destroy']);
@@ -57,7 +60,7 @@ Route::prefix('categories')->group(function () {
     Route::get('/{id}', [EventCategoryController::class, 'show']); // Semua pengguna bisa melihat detail kategori
 
     // Hanya admin yang bisa mengelola kategori
-    Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
+    Route::middleware(['middleware' => 'api', 'role:admin'])->group(function () {
         Route::post('/', [EventCategoryController::class, 'store']); // Tambah kategori
         Route::put('/{id}', [EventCategoryController::class, 'update']); // Update kategori
         Route::delete('/{id}', [EventCategoryController::class, 'destroy']); // Hapus kategori

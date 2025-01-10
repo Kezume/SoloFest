@@ -15,9 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->date('date');
             $table->string('location');
-            $table->unsignedBigInteger('user_id'); // Referensi ke EO
+            $table->date('start_date');
+            $table->date('end_date');
+            $table->unsignedBigInteger('user_id');
             $table->timestamps();
 
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
