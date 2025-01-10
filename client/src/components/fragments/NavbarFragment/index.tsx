@@ -28,6 +28,8 @@ const NavbarFragment = () => {
     setIsHumburgerActive(false);
   };
 
+  const isLogin = localStorage.getItem("isLogin");
+
   return (
     <nav className="w-full h-16 bg-white flex items-center justify-between  relative">
       <Title titleStyle="font-bold text-3xl flex gap-2 items-center z-20">SoloFest</Title>
@@ -90,12 +92,37 @@ const NavbarFragment = () => {
             <SearchBoxFragment type="text" name="searchItem" placeholder="Cari event apa nih?" value={searchItem} onChange={(e) => setSearchItem(e.target.value)} />
           </form>
         </li>
-
-        <li className="mobile:w-full">
-          <Link to={"/login"}>
-            <Button type="submit">Masuk</Button>
-          </Link>
-        </li>
+        {isLogin !== "true" ? (
+          <li className="mobile:w-full">
+            <Link to={"/login"}>
+              <Button type="submit">Masuk</Button>
+            </Link>
+          </li>
+        ) : (
+          <li className="relative mobile:w-full">
+            <div className="flex items-center gap-2 cursor-pointer group">
+              <img src="images/default-avatar.jpg" alt="Profile" className="w-8 h-8 rounded-full" />
+              <div className="absolute top-5 right-0 mt-2 w-48 bg-white shadow-lg rounded-md hidden group-hover:block z-50">
+                <Link to="/profile" className="block px-4 py-2 hover:bg-gray-100">
+                  Profile
+                </Link>
+                <Link to="/settings" className="block px-4 py-2 hover:bg-gray-100">
+                  Settings
+                </Link>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem("isLogin");
+                    localStorage.removeItem("jwtToken");
+                    window.location.reload();
+                  }}
+                  className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
+                >
+                  Logout
+                </button>
+              </div>
+            </div>
+          </li>
+        )}
       </ul>
     </nav>
   );

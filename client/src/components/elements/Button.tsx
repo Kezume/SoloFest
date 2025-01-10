@@ -1,6 +1,6 @@
 interface ButtonProps {
   buttonStyle?: string;
-  children: React.ReactNode;
+  children: React.ReactNode | React.ReactNodeArray;
   type: "button" | "submit" | "reset";
   onSubmit?: (event: React.FormEvent<HTMLButtonElement>) => void;
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;

@@ -12,10 +12,17 @@ const LoginPage = () => {
   const loginHandler = async (e: any) => {
     e.preventDefault();
     try {
-      axios.post("http://localhost:8000/api/auth/login", {
+      const response = await axios.post("http://localhost:8000/api/auth/login", {
         identifier: formData.data,
         password: formData.password,
       });
+      console.log(response.data); // Print the entire response data to check its structure
+      const token = response.data.data.access_token; // Access the token correctly
+      localStorage.setItem("jwtToken", token);
+      if (token !== "") {
+        localStorage.setItem("isLogin", "true");
+        window.location.href = "/home";
+      }
     } catch (error) {
       console.error(error);
     }
