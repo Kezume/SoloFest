@@ -7,8 +7,10 @@ use App\Models\Purchase;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Midtrans\Config;
+use Midtrans\Notification;
 use Midtrans\Snap;
 
 class PurchaseController extends Controller
@@ -73,7 +75,7 @@ class PurchaseController extends Controller
                 'id' => $ticket->id,
                 'price' => $ticket->price,
                 'quantity' => $quantity,
-                'name' => 'tes',
+                'name' => 'Ticket ' . $ticket->event->name,
                 // 'name' => $ticket->name,
             ],[
                 'id' => 'Service Tax id ' . $ticket->id,
@@ -97,7 +99,6 @@ class PurchaseController extends Controller
         ];
 
         try {
-            // Generate Snap Token
             $snapToken = Snap::getSnapToken($midtransParams);
 
             return response()->json([
@@ -123,5 +124,57 @@ class PurchaseController extends Controller
             'message' => 'Purchase history fetched successfully.',
             'data' => $purchases
         ]);
+    }
+
+    public function handleNotification(Request $request)
+    {
+        // Konfigurasi Midtrans
+        Config::$serverKey = config('midtrans.server_key');
+        Config::$isProduction = config('midtrans.is_production');
+        Config::$isSanitized = config('midtrans.is_sanitized');
+        Config::$is3ds = config('midtrans.is_3ds');
+
+        try {
+            $notification = new Notification();
+
+            $transactionStatus = $notification->transaction_status;
+            $orderId = $notification->order_id;
+            $fraudStatus = $notification->fraud_status;
+
+            // Ambil ID pembelian dari order_id
+            $purchaseId = str_replace('ORDER-', '', $orderId);
+            $purchase = Purchase::find($purchaseId);
+
+            if (!$purchase) {
+                return response()->json(['message' => 'Purchase not found.'], 404);
+            }
+
+            // Perbarui status pembelian berdasarkan status transaksi
+            if ($transactionStatus == 'capture') {
+                if ($fraudStatus == 'challenge') {
+                    $purchase->status = 'challenge'; // Transaksi dalam pemeriksaan
+                } else {
+                    $purchase->status = 'paid'; // Transaksi berhasil
+                }
+            } elseif ($transactionStatus == 'settlement') {
+                $purchase->status = 'paid'; // Transaksi berhasil diselesaikan
+            } elseif ($transactionStatus == 'pending') {
+                $purchase->status = 'pending'; // Menunggu pembayaran
+            } elseif ($transactionStatus == 'deny') {
+                $purchase->status = 'denied'; // Transaksi ditolak
+            } elseif ($transactionStatus == 'expire') {
+                $purchase->status = 'expired'; // Transaksi kedaluwarsa
+            } elseif ($transactionStatus == 'cancel') {
+                $purchase->status = 'canceled'; // Transaksi dibatalkan
+            }
+
+            $purchase->save();
+
+            return response()->json(['message' => 'Notification handled successfully.'], 200);
+        } catch (\Exception $e) {
+            Log::error('Midtrans Notification Error: ' . $e->getMessage());
+
+            return response()->json(['message' => 'Failed to handle notification.'], 500);
+        }
     }
 }

@@ -36,6 +36,7 @@ Route::middleware(['middleware' => 'api'])->group(function () {
 
     Route::post('/tickets/{ticketId}/purchase', [PurchaseController::class, 'store']);
     Route::get('/purchases', [PurchaseController::class, 'index']);
+    Route::post('/midtrans/notification', [PurchaseController::class, 'handleNotification']);
 });
 
 Route::prefix('events')->group(function () {
