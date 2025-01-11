@@ -253,7 +253,7 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $user = User::find($request->user_id);
+        $user = User::find($request->email);
 
         if (!$user) {
             return response()->json([
