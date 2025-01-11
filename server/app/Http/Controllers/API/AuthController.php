@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+// use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -119,7 +120,7 @@ class AuthController extends Controller
         ]);
 
         // Kirim email berisi OTP dengan tautan verifikasi
-        Mail::send('emails.otp', ['otp' => $otp, 'user_id' => $user->id], function ($message) use ($data) {
+        Mail::send('emails.otp', ['otp' => $otp, 'user_id' => $user->id, 'email' => $user->email], function ($message) use ($data) {
             $message->to($data['email'])->subject('Kode OTP Verifikasi Anda');
         });
 
@@ -243,7 +244,7 @@ class AuthController extends Controller
 
     public function refreshOtp(Request $request)
     {
-        $validator = Validator::make($request->all(), [
+        $validator = Validator::make($request->only(['email']), [
             'email' => 'required|email|exists:users,email', // Ubah validasi ke email
         ]);
 
@@ -253,8 +254,9 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $user = User::find($request->email);
+        $user = User::where('email', $request->email)->first();
 
+        // Log::info("data" . $user);
         if (!$user) {
             return response()->json([
                 'message' => 'User tidak ditemukan.',
@@ -285,7 +287,7 @@ class AuthController extends Controller
         ]);
 
         // Kirim email dengan OTP baru
-        Mail::send('emails.otp', ['otp' => $otp, 'user_id' => $user->id], function ($message) use ($user) {
+        Mail::send('emails.otp', ['otp' => $otp, 'email' => $user->email], function ($message) use ($user) {
             $message->to($user->email)->subject('Kode OTP Verifikasi Anda (Refresh)');
         });
 

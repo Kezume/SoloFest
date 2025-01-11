@@ -15,7 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->string('location');
+            $table->string('image_url')->nullable();
+            $table->string('location')->nullable();
             $table->date('start_date');
             $table->date('end_date');
             $table->unsignedBigInteger('user_id');

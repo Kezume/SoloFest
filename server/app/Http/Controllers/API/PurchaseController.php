@@ -75,9 +75,10 @@ class PurchaseController extends Controller
                 'id' => $ticket->id,
                 'price' => $ticket->price,
                 'quantity' => $quantity,
-                'name' => 'Ticket ' . $ticket->event->name,
+                'name' => 'Ticket ' . $ticket->event->name . '(' . $ticket->type . ')',
                 // 'name' => $ticket->name,
-            ],[
+            ],
+            [
                 'id' => 'Service Tax id ' . $ticket->id,
                 'price' => $serviceTax,
                 'quantity' => 1,
@@ -128,7 +129,6 @@ class PurchaseController extends Controller
 
     public function handleNotification(Request $request)
     {
-        // Konfigurasi Midtrans
         Config::$serverKey = config('midtrans.server_key');
         Config::$isProduction = config('midtrans.is_production');
         Config::$isSanitized = config('midtrans.is_sanitized');
@@ -141,7 +141,6 @@ class PurchaseController extends Controller
             $orderId = $notification->order_id;
             $fraudStatus = $notification->fraud_status;
 
-            // Ambil ID pembelian dari order_id
             $purchaseId = str_replace('ORDER-', '', $orderId);
             $purchase = Purchase::find($purchaseId);
 
@@ -149,23 +148,17 @@ class PurchaseController extends Controller
                 return response()->json(['message' => 'Purchase not found.'], 404);
             }
 
-            // Perbarui status pembelian berdasarkan status transaksi
-            if ($transactionStatus == 'capture') {
-                if ($fraudStatus == 'challenge') {
-                    $purchase->status = 'challenge'; // Transaksi dalam pemeriksaan
-                } else {
-                    $purchase->status = 'paid'; // Transaksi berhasil
-                }
+            if ($transactionStatus == 'capture' && $fraudStatus != 'challenge') {
+                $purchase->status = 'paid';
+                $purchase->ticket->decrement('quantity', $purchase->quantity);
             } elseif ($transactionStatus == 'settlement') {
-                $purchase->status = 'paid'; // Transaksi berhasil diselesaikan
+                $purchase->status = 'paid';
+                $purchase->ticket->decrement('quantity', $purchase->quantity);
+            } elseif (in_array($transactionStatus, ['deny', 'expire', 'cancel'])) {
+                $purchase->status = $transactionStatus;
+                $purchase->ticket->increment('quantity', $purchase->quantity);
             } elseif ($transactionStatus == 'pending') {
-                $purchase->status = 'pending'; // Menunggu pembayaran
-            } elseif ($transactionStatus == 'deny') {
-                $purchase->status = 'denied'; // Transaksi ditolak
-            } elseif ($transactionStatus == 'expire') {
-                $purchase->status = 'expired'; // Transaksi kedaluwarsa
-            } elseif ($transactionStatus == 'cancel') {
-                $purchase->status = 'canceled'; // Transaksi dibatalkan
+                $purchase->status = 'pending';
             }
 
             $purchase->save();
