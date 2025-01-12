@@ -8,12 +8,13 @@ interface AuthLayoutProps {
   children: React.ReactNode;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   title: string;
+  renderControlButtons?: React.ReactNode;
 }
 
-const AuthLayout: React.FC<AuthLayoutProps> = ({ children, onSubmit, title }) => {
+const AuthLayout: React.FC<AuthLayoutProps> = ({ children, onSubmit, title, renderControlButtons }) => {
   return (
     <MainLayout>
-      <div className={`flex justify-center items-center ${title != "Login" ? "h-auto" : "h-[60vh]"} p-10`}>
+      <div className={`flex justify-center items-center ${title != "Login" ? "h-auto" : ""} p-10`}>
         <Form
           className="w-[50rem] h-full p-5 flex flex-col gap-5 bg-white rounded-lg shadow-[0_3px_10px_rgb(0,0,0,0.2)] hover:shadow-[0_10px_20px_rgba(0,0,0,0.19),_0_6px_6px_rgba(0,0,0,0.23)] transition-shadow duration-300 ease-in-out"
           onSubmit={onSubmit}
@@ -30,9 +31,16 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({ children, onSubmit, title }) =>
               {title === "register" ? "Masuk lagi yuk!" : "Kenalan dulu yuk!"}
             </Link>
           </p>
-          <Button type="submit" buttonStyle="bg-primary py-2 px-6 rounded text-white">
-            {title === "register" ? "Daftar" : "Masuk"}
-          </Button>
+
+          <div className="flex gap-2 w-full">
+            {title === "register" ? (
+              <>{renderControlButtons}</>
+            ) : (
+              <Button type="submit" buttonStyle="w-full bg-primary py-2 px-6 rounded text-white">
+                Masuk
+              </Button>
+            )}
+          </div>
         </Form>
       </div>
     </MainLayout>

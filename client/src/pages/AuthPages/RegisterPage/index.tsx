@@ -1,8 +1,35 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Button from "../../../components/elements/Button";
 import InputFormFragment from "../../../components/fragments/InputFormFragment";
 import AuthLayout from "../../../components/layouts/AuthLayout";
 import axios from "axios";
+
+const provinces = [
+  { value: "jakarta", label: "DKI Jakarta" },
+  { value: "jawa_barat", label: "Jawa Barat" },
+  { value: "jawa_tengah", label: "Jawa Tengah" },
+  { value: "jawa_timur", label: "Jawa Timur" },
+  { value: "yogyakarta", label: "DI Yogyakarta" },
+  // Add more provinces as needed
+];
+
+const citiesByProvince: Record<string, Array<{ value: string; label: string }>> = {
+  jakarta: [
+    { value: "jakarta_pusat", label: "Jakarta Pusat" },
+    { value: "jakarta_utara", label: "Jakarta Utara" },
+    { value: "jakarta_selatan", label: "Jakarta Selatan" },
+    { value: "jakarta_timur", label: "Jakarta Timur" },
+    { value: "jakarta_barat", label: "Jakarta Barat" },
+  ],
+  jawa_barat: [
+    { value: "bandung", label: "Bandung" },
+    { value: "bogor", label: "Bogor" },
+    { value: "depok", label: "Depok" },
+    { value: "bekasi", label: "Bekasi" },
+    // Add more cities
+  ],
+  // Add more cities for other provinces
+};
 
 interface FormData {
   username: string;
@@ -29,7 +56,6 @@ interface FormField {
 
 const RegisterPage = () => {
   const [formSection, setFormSection] = useState(1);
-
   const [formData, setFormData] = useState<FormData>({
     // Section 1
     username: "",
@@ -49,67 +75,22 @@ const RegisterPage = () => {
     otpCode: "",
   });
 
-  const [provinces, setProvinces] = useState<Array<{ value: string; label: string; provinceId: string }>>([]);
-  // const [selectedProvinceId, setSelectedProvinceId] = useState<string>("");
-  useEffect(() => {
-    axios
-      .get("https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json")
-      .then((res) => {
-        // setProvinces(res.data.data);
-        const provinceData = res.data.map((province: { id: string; name: string }) => {
-          return {
-            provinceId: province.id,
-            value: province.name.toLowerCase().replace(/\s/g, "_"),
-            label: province.name,
-          };
-        });
-        setProvinces(provinceData);
-      })
-      .catch((err) => {
-        console.error(err);
-      });
-  }, []);
-
   // Add API related states
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [cityOptions, setCityOptions] = useState<Array<{ value: string; label: string }>>([]);
 
-  const handleProvinceChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedValue = e.target.value;
-    const selectedProvince = provinces.find((province) => province.value === selectedValue);
-
-    if (selectedProvince) {
-      // setSelectedProvinceId(selectedProvince.provinceId);
-      setFormData({ ...formData, provinsi: selectedValue, kota_kabupaten: "" });
-
-      try {
-        const response = await axios.get(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${selectedProvince.provinceId}.json`);
-
-        const cityData = response.data.map((city: { id: string; name: string }) => ({
-          value: city.name.toLowerCase().replace(/\s/g, "_"),
-          label: city.name,
-        }));
-
-        setCityOptions(cityData);
-      } catch (error) {
-        console.error("Error fetching cities:", error);
-        setCityOptions([]);
-      }
-    }
-  };
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
 
     if (name === "provinsi") {
-      handleProvinceChange(e as React.ChangeEvent<HTMLSelectElement>);
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      setCityOptions(citiesByProvince[value] || []);
+      setFormData((prev) => ({ ...prev, kota_kabupaten: "" })); // Reset city when province changes
     }
   };
 
@@ -245,7 +226,7 @@ const RegisterPage = () => {
       setError(null);
 
       const refreshResponse = await axios.post("http://localhost:8000/api/auth/refresh-otp", {
-        email: formData.email,
+        email: formData.email, // Change to use email instead of user_id
       });
 
       if (refreshResponse.data.message) {

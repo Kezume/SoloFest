@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import Title from "../../elements/Title";
 import SearchBoxFragment from "../SearchBoxFragment";
 import Button from "../../elements/Button";
@@ -9,6 +9,8 @@ import { FaWindowClose } from "react-icons/fa";
 const NavbarFragment = () => {
   const [searchItem, setSearchItem] = useState("");
   const [isHumburgerActive, setIsHumburgerActive] = useState(false);
+  const location = useLocation();
+  const isActive = (path: string) => (location.pathname === path ? "text-primary font-bold" : "");
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -31,20 +33,21 @@ const NavbarFragment = () => {
   const isLogin = localStorage.getItem("isLogin");
 
   return (
-    <nav className="w-full h-16 bg-white flex items-center justify-between  relative">
-      <Title titleStyle="font-bold text-3xl flex gap-2 items-center z-20">SoloFest</Title>
+    <nav className="w-full h-16 bg-white flex items-center justify-between sticky top-0 z-20 shadow-md ">
+      <div className=" container mx-auto px-5 flex items-center justify-between">
+        <Title titleStyle="font-bold text-3xl flex gap-2 items-center z-20">SoloFest</Title>
 
-      {/* Mobile Menu Icons */}
-      <div className="hidden mobile:block z-20">
-        {isHumburgerActive ? <FaWindowClose className="text-3xl cursor-pointer" onClick={closeMenuHandler} /> : <CiMenuBurger className="text-3xl cursor-pointer" onClick={humbugerMenuHanlder} />}
-      </div>
+        {/* Mobile Menu Icons */}
+        <div className="hidden mobile:block z-20">
+          {isHumburgerActive ? <FaWindowClose className="text-3xl cursor-pointer" onClick={closeMenuHandler} /> : <CiMenuBurger className="text-3xl cursor-pointer" onClick={humbugerMenuHanlder} />}
+        </div>
 
-      {/* Backdrop Overlay */}
-      {isHumburgerActive && <div className="fixed inset-0 bg-black bg-opacity-50 z-10" onClick={closeMenuHandler} />}
+        {/* Backdrop Overlay */}
+        {isHumburgerActive && <div className="fixed inset-0 bg-black bg-opacity-50 z-10" onClick={closeMenuHandler} />}
 
-      {/* Navigation Menu */}
-      <ul
-        className={`
+        {/* Navigation Menu */}
+        <ul
+          className={`
           flex items-center justify-center gap-5
           mobile:fixed mobile:top-0 mobile:right-0 
           mobile:w-64 mobile:h-screen mobile:flex-col 
@@ -55,75 +58,67 @@ const NavbarFragment = () => {
           ${isHumburgerActive ? "mobile:translate-x-0" : "mobile:translate-x-full"}
           transition-transform duration-300 ease-in-out
         `}
-      >
-        {/* Mobile Search */}
-        <li className="hidden mobile:block w-full mb-4">
-          <form onSubmit={handleSearch}>
-            <SearchBoxFragment type="text" name="searchItem" placeholder="Cari event..." value={searchItem} onChange={(e) => setSearchItem(e.target.value)} />
-          </form>
-        </li>
+        >
+          {/* Mobile Search */}
+          <li className="hidden mobile:block w-full mb-4">
+            <form onSubmit={handleSearch}>
+              <SearchBoxFragment type="text" name="searchItem" placeholder="Cari event..." value={searchItem} onChange={(e) => setSearchItem(e.target.value)} />
+            </form>
+          </li>
 
-        <li className="mobile:w-full">
-          <Link to={"/"} className="mobile:block mobile:py-2 hover:text-primary transition-colors">
-            Beranda
-          </Link>
-        </li>
-
-        <li className="mobile:w-full">
-          <Link to={"/"} className="mobile:block mobile:py-2 hover:text-primary transition-colors">
-            Event
-          </Link>
-        </li>
-
-        <li className="mobile:w-full">
-          <Link to={"/"} className="mobile:block mobile:py-2 hover:text-primary transition-colors">
-            Tentang
-          </Link>
-        </li>
-
-        <li className="mobile:w-full">
-          <Link to={"/"} className="mobile:block mobile:py-2 hover:text-primary transition-colors">
-            Bantuan
-          </Link>
-        </li>
-
-        <li className="mobile:hidden">
-          <form onSubmit={handleSearch}>
-            <SearchBoxFragment type="text" name="searchItem" placeholder="Cari event apa nih?" value={searchItem} onChange={(e) => setSearchItem(e.target.value)} />
-          </form>
-        </li>
-        {isLogin !== "true" ? (
           <li className="mobile:w-full">
-            <Link to={"/login"}>
-              <Button type="submit">Masuk</Button>
+            <Link to={"/home"} className={`mobile:block mobile:py-2 ${isActive("/home")} hover:text-primary transition-colors`}>
+              Beranda
             </Link>
           </li>
-        ) : (
-          <li className="relative mobile:w-full">
-            <div className="flex items-center gap-2 cursor-pointer group">
-              <img src="images/default-avatar.jpg" alt="Profile" className="w-8 h-8 rounded-full" />
-              <div className="absolute top-5 right-0 mt-2 w-48 bg-white shadow-lg rounded-md hidden group-hover:block z-50">
-                <Link to="/profile" className="block px-4 py-2 hover:bg-gray-100">
-                  Profile
-                </Link>
-                <Link to="/settings" className="block px-4 py-2 hover:bg-gray-100">
-                  Settings
-                </Link>
-                <button
-                  onClick={() => {
-                    localStorage.removeItem("isLogin");
-                    localStorage.removeItem("jwtToken");
-                    window.location.reload();
-                  }}
-                  className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
-                >
-                  Logout
-                </button>
-              </div>
-            </div>
+
+          <li className="mobile:w-full">
+            <Link to={"/event"} className={`mobile:block mobile:py-2 ${isActive("/event")} hover:text-primary transition-colors`}>
+              Event
+            </Link>
           </li>
-        )}
-      </ul>
+
+          <li className="mobile:w-full">
+            <Link to={"/help"} className={`mobile:block mobile:py-2 ${isActive("/help")} hover:text-primary transition-colors`}>
+              Bantuan
+            </Link>
+          </li>
+
+          <li className="mobile:hidden">
+            <form onSubmit={handleSearch}>
+              <SearchBoxFragment type="text" name="searchItem" placeholder="Cari event apa nih?" value={searchItem} onChange={(e) => setSearchItem(e.target.value)} />
+            </form>
+          </li>
+          {isLogin !== "true" ? (
+            <li className="mobile:w-full">
+              <Link to={"/login"}>
+                <Button type="submit">Masuk</Button>
+              </Link>
+            </li>
+          ) : (
+            <li className="relative mobile:w-full">
+              <div className="flex items-center gap-2 cursor-pointer group">
+                <img src="images/default-avatar.jpg" alt="Profile" className="w-8 h-8 rounded-full" />
+                <div className="absolute top-5 right-0 mt-2 w-48 bg-white shadow-lg rounded-md hidden group-hover:block z-50">
+                  <Link to="/profile/dashboard" className="block px-4 py-2 hover:bg-gray-100">
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={() => {
+                      localStorage.removeItem("isLogin");
+                      localStorage.removeItem("jwtToken");
+                      window.location.reload();
+                    }}
+                    className="w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </div>
+            </li>
+          )}
+        </ul>
+      </div>
     </nav>
   );
 };
