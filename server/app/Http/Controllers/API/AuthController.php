@@ -20,11 +20,10 @@ class AuthController extends Controller
         $this->middleware('auth:api', ['except' => ['login', 'register', 'verifyOtp', 'refreshOtp']]);
     }
 
-
     public function update(Request $request)
     {
         $user = Auth::user();
-        
+
         if (!$user) {
             return response()->json([
                 'message' => 'User tidak ditemukan!'
@@ -52,7 +51,7 @@ class AuthController extends Controller
         }
 
         $data = $validator->validated();
-        
+
         if (isset($data['full_name'])) {
             $data['name'] = $data['full_name'];
             unset($data['full_name']);
@@ -192,7 +191,7 @@ class AuthController extends Controller
 
     public function refresh()
     {
-          try {
+        try {
             $token = JWTAuth::parseToken()->refresh();
             return $this->respondWithToken($token);
         } catch (JWTException $e) {

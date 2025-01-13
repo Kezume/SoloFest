@@ -3,11 +3,14 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\Event;
 use App\Models\Purchase;
 use App\Models\Ticket;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Midtrans\Config;
 use Midtrans\Notification;
@@ -79,10 +82,10 @@ class PurchaseController extends Controller
                 // 'name' => $ticket->name,
             ],
             [
-                'id' => 'Service Tax id ' . $ticket->id,
+                'id' => 'Pajak aplikasi id ' . $ticket->id,
                 'price' => $serviceTax,
                 'quantity' => 1,
-                'name' => 'Service tax (2.5%)',
+                'name' => 'Pajak aplikasi (2.5%)',
                 // 'name' => $ticket->name,
             ]
         ];
@@ -97,6 +100,15 @@ class PurchaseController extends Controller
             'transaction_details' => $transactionDetails,
             'item_details' => $itemDetails,
             'customer_details' => $customerDetails,
+            // 'enabled_payments' => [
+            //     'credit_card',
+            //     'bank_transfer',
+            //     'gopay',
+            //     'shopeepay',
+            //     'qris',
+            //     'bca_klikpay',
+            //     'echannel'
+            //     ],
         ];
 
         try {
@@ -127,8 +139,9 @@ class PurchaseController extends Controller
         ]);
     }
 
-    public function handleNotification(Request $request)
+    public function handleNotification()
     {
+        // Konfigurasi Midtrans
         Config::$serverKey = config('midtrans.server_key');
         Config::$isProduction = config('midtrans.is_production');
         Config::$isSanitized = config('midtrans.is_sanitized');
@@ -162,6 +175,37 @@ class PurchaseController extends Controller
             }
 
             $purchase->save();
+
+            // Kirim email dengan e-Ticket terlampir
+            $user = $purchase->user;
+            $event = $purchase->ticket->event;
+            $ticket = $purchase->ticket;
+
+            // Generate PDF e-Ticket
+            $pdf = Pdf::loadView('tickets.pdf', compact('purchase', 'event', 'ticket', 'user'));
+            $pdf->setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true]);
+
+            // Simpan PDF di server sementara
+            $pdfPath = storage_path('app/public/tickets/Ticket-' . $purchase->id . '.pdf');
+            $pdf->save($pdfPath);
+
+            Log::info('Saving PDF to path:', ['path' => $pdfPath]);
+
+            if (!is_dir(dirname($pdfPath))) {
+                Log::error('Directory does not exist:', ['directory' => dirname($pdfPath)]);
+            }
+
+
+            // Kirim email dengan lampiran PDF
+            Mail::send('emails.ticket', ['user' => $user, 'event' => $event, 'ticket' => $ticket, 'purchase' => $purchase], function ($message) use ($user, $event, $pdfPath) {
+                $message->to($user->email, $user->name)
+                    ->subject('Your e-Ticket for ' . $event->name)
+                    ->attach($pdfPath);
+            });
+
+
+            // Hapus PDF dari server setelah dikirim
+            unlink($pdfPath);
 
             return response()->json(['message' => 'Notification handled successfully.'], 200);
         } catch (\Exception $e) {

@@ -14,6 +14,8 @@ class Ticket extends Model
         'type',
         'price',
         'quantity',
+        'logo',
+        'location'
     ];
 
     public function event()

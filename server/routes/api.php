@@ -24,19 +24,19 @@ Route::group(['middleware' => 'api', 'prefix' => 'auth'], function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('logout', [AuthController::class, 'logout']);
     Route::post('refresh', [AuthController::class, 'refresh']);
-    Route::get('profile', [AuthController::class, 'profile']);
     Route::post('verify-otp', [AuthController::class, 'verifyOtp']);
     Route::post('refresh-otp', [AuthController::class, 'refreshOtp']);
 });
+Route::post('/midtrans/notification', [PurchaseController::class, 'handleNotification']);
 
 Route::middleware(['middleware' => 'api'])->group(function () {
     Route::get('/users/profile', [AuthController::class, 'profile']);
+    Route::put('/users/profile/update', [AuthController::class, 'update']);
     
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::post('/tickets/{ticketId}/purchase', [PurchaseController::class, 'store']);
     Route::get('/purchases', [PurchaseController::class, 'index']);
-    Route::post('/midtrans/notification', [PurchaseController::class, 'handleNotification']);
 });
 
 Route::prefix('events')->group(function () {

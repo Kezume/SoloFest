@@ -3,9 +3,15 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Mail\TicketEmail;
 use App\Models\Event;
+use App\Models\Purchase;
 use App\Models\Ticket;
+use Barryvdh\DomPDF\Facade\Pdf;
+use CloudinaryLabs\CloudinaryLaravel\Facades\Cloudinary;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 
 class TicketController extends Controller
@@ -40,13 +46,15 @@ class TicketController extends Controller
             ], 404);
         }
 
-        // Cek otorisasi untuk membuat tiket
         $this->authorize('create', [Ticket::class, $event]);
 
         $validator = Validator::make($request->all(), [
             'type' => 'required|string|max:255',
             'price' => 'required|numeric|min:0',
             'quantity' => 'required|integer|min:0',
+            'date' => 'required|date',
+            'location' => 'required|string|max:255',
+            'logo' => 'required|image|mimes:jpeg,png,jpg|max:2048', // Validasi gambar
         ]);
 
         if ($validator->fails()) {
@@ -56,7 +64,15 @@ class TicketController extends Controller
             ], 422);
         }
 
-        $ticket = $event->tickets()->create($validator->validated());
+        // Upload logo ke Cloudinary
+        $logoPath = Cloudinary::upload($request->file('logo')->getRealPath(), [
+            'folder' => 'tickets/' . $eventId
+        ])->getSecurePath();
+
+        $ticketData = $validator->validated();
+        $ticketData['logo'] = $logoPath; // Simpan URL logo
+
+        $ticket = $event->tickets()->create($ticketData);
 
         return response()->json([
             'message' => 'Ticket created successfully.',
@@ -64,6 +80,7 @@ class TicketController extends Controller
         ], 201);
     }
 
+    // belum diberi update image/logo
     public function update(Request $request, $eventId, $ticketId)
     {
         $ticket = Ticket::where('event_id', $eventId)->find($ticketId);
@@ -98,6 +115,7 @@ class TicketController extends Controller
             'data' => $ticket
         ]);
     }
+
 
     public function destroy($eventId, $ticketId)
     {
