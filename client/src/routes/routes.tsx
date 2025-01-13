@@ -4,7 +4,6 @@ import RegisterPage from "../pages/AuthPages/RegisterPage";
 import LoginPage from "../pages/AuthPages/LoginPage";
 import ProtectedRoute from "../components/ProtectedRoute";
 import EventPage from "../pages/EventPages";
-import DashboardLayout from "../components/layouts/DashboardLayout";
 import MemberDashboardPage from "../pages/MemberDashboardPage";
 
 const router = createBrowserRouter([

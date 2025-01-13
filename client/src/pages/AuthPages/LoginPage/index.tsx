@@ -21,14 +21,13 @@ const LoginPage = () => {
     }
 
     try {
-      const response = await axios.post("http://localhost:8000/api/auth/login", {
+      const response = await axios.post("https://solofest.site/server/public/api/auth/login", {
         identifier: formData.data,
         password: formData.password,
       });
       const token = response.data.data.access_token;
       localStorage.setItem("jwtToken", token);
       if (token !== "") {
-        localStorage.setItem("isLogin", "true");
         window.location.href = "/home";
       }
     } catch (error: any) {

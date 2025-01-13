@@ -4,14 +4,15 @@ import Label from "../elements/Label";
 interface InputFormFragmentProps {
   type: string;
   name: string;
-  placeholder: string;
+  placeholder?: string;
   value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => void;
   children: React.ReactNode;
   options?: Array<{ value: string; label: string }>;
+  isDisabled?: boolean;
 }
 
-const InputFormFragment: React.FC<InputFormFragmentProps> = ({ type, name, placeholder, value, onChange, children, options }) => {
+const InputFormFragment: React.FC<InputFormFragmentProps> = ({ type, name, placeholder, value, onChange, children, options, isDisabled }) => {
   const renderInput = () => {
     switch (type) {
       case "textarea":
@@ -42,7 +43,18 @@ const InputFormFragment: React.FC<InputFormFragmentProps> = ({ type, name, place
           </select>
         );
       default:
-        return <Input type={type} name={name} id={name} placeholder={placeholder} value={value} onChange={onChange as (e: React.ChangeEvent<HTMLInputElement>) => void} inputStyle="w-full h-full pt-5 peer focus:outline-none" />;
+        return (
+          <Input
+            type={type}
+            name={name}
+            id={name}
+            placeholder={placeholder}
+            value={value}
+            onChange={onChange as (e: React.ChangeEvent<HTMLInputElement>) => void}
+            inputStyle="w-full h-full pt-5 peer focus:outline-none"
+            isDisabled={isDisabled}
+          />
+        );
     }
   };
 

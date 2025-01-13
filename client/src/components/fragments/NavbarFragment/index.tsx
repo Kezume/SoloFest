@@ -30,7 +30,7 @@ const NavbarFragment = () => {
     setIsHumburgerActive(false);
   };
 
-  const isLogin = localStorage.getItem("isLogin");
+  const isLogin = localStorage.getItem("jwtToken");
 
   return (
     <nav className="w-full h-16 bg-white flex items-center justify-between sticky top-0 z-20 shadow-md ">
@@ -89,7 +89,7 @@ const NavbarFragment = () => {
               <SearchBoxFragment type="text" name="searchItem" placeholder="Cari event apa nih?" value={searchItem} onChange={(e) => setSearchItem(e.target.value)} />
             </form>
           </li>
-          {isLogin !== "true" ? (
+          {!isLogin ? (
             <li className="mobile:w-full">
               <Link to={"/login"}>
                 <Button type="submit">Masuk</Button>

@@ -19,7 +19,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     <>
       <div className="flex">
         <SideNavFragment />
-        <div className="secondContent w-full h-screen">
+        <div className="secondContent w-full h-auto">
           <nav
             className=" w-full h-14 p-3  font-bold bg-white
           text-slate-600 flex items-center justify-between shadow-lg px-5"
@@ -28,7 +28,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
               <h1>Profile Dashboard</h1>
             </div>
 
-            <Button type="button" buttonStyle="user-profile relative flex items-center gap-2 bg-secondary p-2 rounded-md text-white" onClick={dropDownActiveHandler}>
+            <div className="user-profile relative flex items-center gap-2 bg-secondary p-2 rounded-md text-white" onClick={dropDownActiveHandler}>
               <h2>Kevien Ollyvie Jolanda</h2>
               <IoIosArrowUp className={`${isDropDownActive ? "rotate-180" : "rotate-90"} transition-all duration-300 ease-in`} />
               <div className="dropdown-menu w-full absolute -bottom-[9.5rem] left-0 overflow-hidden ">
@@ -63,7 +63,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                   </Button>
                 </div>
               </div>
-            </Button>
+            </div>
           </nav>
           {children}
         </div>

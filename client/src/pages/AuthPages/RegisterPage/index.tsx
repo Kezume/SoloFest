@@ -1,35 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Button from "../../../components/elements/Button";
 import InputFormFragment from "../../../components/fragments/InputFormFragment";
 import AuthLayout from "../../../components/layouts/AuthLayout";
 import axios from "axios";
 
-const provinces = [
-  { value: "jakarta", label: "DKI Jakarta" },
-  { value: "jawa_barat", label: "Jawa Barat" },
-  { value: "jawa_tengah", label: "Jawa Tengah" },
-  { value: "jawa_timur", label: "Jawa Timur" },
-  { value: "yogyakarta", label: "DI Yogyakarta" },
-  // Add more provinces as needed
-];
+interface Province {
+  id: string;
+  name: string;
+}
 
-const citiesByProvince: Record<string, Array<{ value: string; label: string }>> = {
-  jakarta: [
-    { value: "jakarta_pusat", label: "Jakarta Pusat" },
-    { value: "jakarta_utara", label: "Jakarta Utara" },
-    { value: "jakarta_selatan", label: "Jakarta Selatan" },
-    { value: "jakarta_timur", label: "Jakarta Timur" },
-    { value: "jakarta_barat", label: "Jakarta Barat" },
-  ],
-  jawa_barat: [
-    { value: "bandung", label: "Bandung" },
-    { value: "bogor", label: "Bogor" },
-    { value: "depok", label: "Depok" },
-    { value: "bekasi", label: "Bekasi" },
-    // Add more cities
-  ],
-  // Add more cities for other provinces
-};
+interface City {
+  id: string;
+  province_id: string;
+  name: string;
+}
 
 interface FormData {
   username: string;
@@ -79,7 +63,30 @@ const RegisterPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [cityOptions, setCityOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+
+  useEffect(() => {
+    const fetchProvinces = async () => {
+      try {
+        const response = await axios.get("https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json");
+        setProvinces(response.data);
+      } catch (error) {
+        console.error("Failed to fetch provinces:", error);
+      }
+    };
+
+    fetchProvinces();
+  }, []);
+
+  const fetchCities = async (provinceId: string) => {
+    try {
+      const response = await axios.get(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${provinceId}.json`);
+      setCities(response.data);
+    } catch (error) {
+      console.error("Failed to fetch cities:", error);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -89,7 +96,7 @@ const RegisterPage = () => {
     }));
 
     if (name === "provinsi") {
-      setCityOptions(citiesByProvince[value] || []);
+      fetchCities(value);
       setFormData((prev) => ({ ...prev, kota_kabupaten: "" })); // Reset city when province changes
     }
   };
@@ -103,14 +110,39 @@ const RegisterPage = () => {
           setError("Semua field harus diisi");
           return false;
         }
+
+        // Password validation rules
+        const passwordRegex = {
+          capital: /^[A-Z]/, // Starts with capital letter
+          number: /\d/, // Contains at least one number
+          symbol: /[!@#$%^&*(),.?":{}|<>]/, // Contains at least one symbol
+        };
+
+        if (!passwordRegex.capital.test(formData.password)) {
+          setError("Password harus diawali dengan huruf besar");
+          return false;
+        }
+
+        if (!passwordRegex.number.test(formData.password)) {
+          setError("Password harus mengandung minimal 1 angka");
+          return false;
+        }
+
+        if (!passwordRegex.symbol.test(formData.password)) {
+          setError("Password harus mengandung minimal 1 simbol");
+          return false;
+        }
+
         if (formData.password.length < 8) {
           setError("Password harus minimal 8 karakter");
           return false;
         }
+
         if (formData.password !== formData.kon) {
           setError("Password tidak cocok");
           return false;
         }
+
         if (!formData.email.includes("@")) {
           setError("Email tidak valid");
           return false;
@@ -164,7 +196,7 @@ const RegisterPage = () => {
             role: "member",
           };
 
-          const registerResponse = await axios.post("http://localhost:8000/api/auth/register", registerData);
+          const registerResponse = await axios.post("https://solofest.site/server/public/api/auth/register", registerData);
 
           if (registerResponse.data.message) {
             setFormSection(3);
@@ -188,7 +220,7 @@ const RegisterPage = () => {
       // Handle OTP verification on final step
       if (formSection === 3) {
         try {
-          const verifyResponse = await axios.post("http://localhost:8000/api/auth/verify-otp", {
+          const verifyResponse = await axios.post("https://solofest.site/server/public/api/auth/verify-otp", {
             email: formData.email,
             otp: formData.otpCode,
           });
@@ -225,7 +257,7 @@ const RegisterPage = () => {
       setIsLoading(true);
       setError(null);
 
-      const refreshResponse = await axios.post("http://localhost:8000/api/auth/refresh-otp", {
+      const refreshResponse = await axios.post("https://solofest.site/server/public/api/auth/refresh-otp", {
         email: formData.email, // Change to use email instead of user_id
       });
 
@@ -271,13 +303,19 @@ const RegisterPage = () => {
         name: "provinsi",
         label: "Provinsi",
         type: "select",
-        options: provinces,
+        options: provinces.map((province) => ({
+          value: province.id,
+          label: province.name,
+        })),
       },
       {
         name: "kota_kabupaten",
         label: "Kota/Kabupaten",
         type: "select",
-        options: cityOptions,
+        options: cities.map((city) => ({
+          value: city.id,
+          label: city.name,
+        })),
       },
       { name: "kode_pos", label: "Kode Pos" },
       { name: "alamat_lengkap", label: "Alamat Lengkap", type: "textarea" },
