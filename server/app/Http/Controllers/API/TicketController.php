@@ -52,9 +52,6 @@ class TicketController extends Controller
             'type' => 'required|string|max:255',
             'price' => 'required|numeric|min:0',
             'quantity' => 'required|integer|min:0',
-            'date' => 'required|date',
-            'location' => 'required|string|max:255',
-            'logo' => 'required|image|mimes:jpeg,png,jpg|max:2048', // Validasi gambar
         ]);
 
         if ($validator->fails()) {
@@ -64,13 +61,7 @@ class TicketController extends Controller
             ], 422);
         }
 
-        // Upload logo ke Cloudinary
-        $logoPath = Cloudinary::upload($request->file('logo')->getRealPath(), [
-            'folder' => 'tickets/' . $eventId
-        ])->getSecurePath();
-
         $ticketData = $validator->validated();
-        $ticketData['logo'] = $logoPath; // Simpan URL logo
 
         $ticket = $event->tickets()->create($ticketData);
 
@@ -80,7 +71,6 @@ class TicketController extends Controller
         ], 201);
     }
 
-    // belum diberi update image/logo
     public function update(Request $request, $eventId, $ticketId)
     {
         $ticket = Ticket::where('event_id', $eventId)->find($ticketId);

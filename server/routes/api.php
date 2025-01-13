@@ -27,16 +27,20 @@ Route::group(['middleware' => 'api', 'prefix' => 'auth'], function () {
     Route::post('verify-otp', [AuthController::class, 'verifyOtp']);
     Route::post('refresh-otp', [AuthController::class, 'refreshOtp']);
 });
-Route::post('/midtrans/notification', [PurchaseController::class, 'handleNotification']);
 
 Route::middleware(['middleware' => 'api'])->group(function () {
+    Route::post('/midtrans/notification', [PurchaseController::class, 'handleNotification']);
     Route::get('/users/profile', [AuthController::class, 'profile']);
     Route::put('/users/profile/update', [AuthController::class, 'update']);
-    
+
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::post('/tickets/{ticketId}/purchase', [PurchaseController::class, 'store']);
     Route::get('/purchases', [PurchaseController::class, 'index']);
+
+    Route::get('/payment/finish', [PurchaseController::class, 'finish'])->name('payments.finish');
+    Route::get('/payment/error', [PurchaseController::class, 'error'])->name('payments.error');
+    Route::get('/payment/unfinish', [PurchaseController::class, 'unfinish'])->name('payments.unfinish');
 });
 
 Route::prefix('events')->group(function () {
@@ -44,12 +48,12 @@ Route::prefix('events')->group(function () {
     Route::get('/{id}', [EventController::class, 'show']);
     Route::get('/category/{categoryId}', [EventController::class, 'getEventsByCategory']);
     Route::get('/{eventId}/tickets', [TicketController::class, 'index']);
-    
+
     Route::middleware(['middleware' => 'api', 'role:admin,event_organizer'])->group(function () {
         Route::post('/', [EventController::class, 'store']);
-        Route::put('/{id}', [EventController::class, 'update']);
+        Route::post('/{id}', [EventController::class, 'update']);
         Route::delete('/{id}', [EventController::class, 'destroy']);
-        
+
         Route::post('/{eventId}/tickets', [TicketController::class, 'store']);
         Route::put('/{eventId}/tickets/{ticketId}', [TicketController::class, 'update']);
         Route::delete('/{eventId}/tickets/{ticketId}', [TicketController::class, 'destroy']);

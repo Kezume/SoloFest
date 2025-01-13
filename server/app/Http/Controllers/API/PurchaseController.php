@@ -100,6 +100,12 @@ class PurchaseController extends Controller
             'transaction_details' => $transactionDetails,
             'item_details' => $itemDetails,
             'customer_details' => $customerDetails,
+            'callbacks' => [
+                'finish' => route('payments.finish'),
+                'error' => route('payments.error'),
+                'unfinish' => route('payments.unfinish'),
+            ],
+
             // 'enabled_payments' => [
             //     'credit_card',
             //     'bank_transfer',
@@ -213,5 +219,29 @@ class PurchaseController extends Controller
 
             return response()->json(['message' => 'Failed to handle notification.'], 500);
         }
+    }
+
+    public function finish(Request $request)
+    {
+        return response()->json([
+            'message' => 'Payment completed successfully.',
+            'redirect_url' => '/member/dashboard'
+        ]);
+    }
+
+    public function error(Request $request)
+    {
+        return response()->json([
+            'message' => 'Payment failed or was canceled.',
+            'redirect_url' => '/member/dashboard'
+        ]);
+    }
+
+    public function unfinish(Request $request)
+    {
+        return response()->json([
+            'message' => 'Payment was not completed.',
+            'redirect_url' => '/member/dashboard'
+        ]);
     }
 }
