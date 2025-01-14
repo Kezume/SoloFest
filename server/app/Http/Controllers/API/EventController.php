@@ -177,24 +177,29 @@ class EventController extends Controller
     }
 
 
-    public function destroy($eventId, $ticketId)
+    public function destroy($eventId)
     {
-        $ticket = Ticket::where('event_id', $eventId)->find($ticketId);
+        $event = Event::find($eventId);
 
-        if (!$ticket) {
+        if (!$event) {
             return response()->json([
-                'message' => 'Ticket not found.',
+                'message' => 'Event not found.',
                 'data' => null
             ], 404);
         }
 
-        // Cek otorisasi untuk menghapus tiket
-        $this->authorize('delete', $ticket);
+        Log::info('Deleting tickets for event ID:', ['eventId' => $eventId]);
 
-        $ticket->delete();
+        // Hapus tiket terkait
+        $deletedTickets = $event->tickets()->delete();
+        Log::info('Number of tickets deleted:', ['count' => $deletedTickets]);
+
+        // Hapus event
+        $event->delete();
+        Log::info('Event deleted:', ['eventId' => $eventId]);
 
         return response()->json([
-            'message' => 'Ticket deleted successfully.',
+            'message' => 'Event and related tickets deleted successfully.',
             'data' => null
         ]);
     }
