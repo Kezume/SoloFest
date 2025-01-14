@@ -12,7 +12,24 @@ const Contact = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log(formData);
+
+    // Create WhatsApp message
+    const message = `*New Message from Website*\nName: ${formData.name}\nEmail: ${formData.email}\nSubject: ${formData.subject}\nMessage: ${formData.message}`;
+
+    // Create WhatsApp URL (remove spaces from phone number)
+    const phoneNumber = "62123456789"; // removed +, spaces, and leading 0
+    const whatsappURL = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+
+    // Open WhatsApp in new tab
+    window.open(whatsappURL, "_blank");
+
+    // Reset form
+    setFormData({
+      name: "",
+      email: "",
+      subject: "",
+      message: "",
+    });
   };
 
   return (

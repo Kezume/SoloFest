@@ -5,11 +5,14 @@ import Button from "../../elements/Button";
 import { useState } from "react";
 import { CiMenuBurger } from "react-icons/ci";
 import { FaWindowClose } from "react-icons/fa";
+import { useAuth } from "../../../context/AuthContext";
 
 const NavbarFragment = () => {
   const [searchItem, setSearchItem] = useState("");
   const [isHumburgerActive, setIsHumburgerActive] = useState(false);
   const location = useLocation();
+  const role = useAuth();
+
   const isActive = (path: string) => (location.pathname === path ? "text-primary font-bold" : "");
 
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
@@ -35,7 +38,10 @@ const NavbarFragment = () => {
   return (
     <nav className="w-full h-16 bg-white flex items-center justify-between sticky top-0 z-20 shadow-md ">
       <div className=" container mx-auto px-5 flex items-center justify-between">
-        <Title titleStyle="font-bold text-3xl flex gap-2 items-center z-20">SoloFest</Title>
+        <div className="flex items-center gap-5">
+          <img src="images/logo.png" alt="logo" width={30} />
+          <Title titleStyle="font-bold text-3xl flex gap-2 items-center z-20">SoloFest</Title>
+        </div>
 
         {/* Mobile Menu Icons */}
         <div className="hidden mobile:block z-20">
@@ -84,11 +90,6 @@ const NavbarFragment = () => {
             </Link>
           </li>
 
-          <li className="mobile:hidden">
-            <form onSubmit={handleSearch}>
-              <SearchBoxFragment type="text" name="searchItem" placeholder="Cari event apa nih?" value={searchItem} onChange={(e) => setSearchItem(e.target.value)} />
-            </form>
-          </li>
           {!isLogin ? (
             <li className="mobile:w-full">
               <Link to={"/login"}>
@@ -100,12 +101,19 @@ const NavbarFragment = () => {
               <div className="flex items-center gap-2 cursor-pointer group">
                 <img src="images/default-avatar.jpg" alt="Profile" className="w-8 h-8 rounded-full" />
                 <div className="absolute top-5 right-0 mt-2 w-48 bg-white shadow-lg rounded-md hidden group-hover:block z-50">
-                  <Link to="/profile/dashboard" className="block px-4 py-2 hover:bg-gray-100">
-                    Dashboard
-                  </Link>
+                  {role.userRole === "member" && (
+                    <Link to="/member/dashboard" className="block px-4 py-2 hover:bg-gray-100">
+                      Dashboard
+                    </Link>
+                  )}
+
+                  {role.userRole === "event_organizer" && (
+                    <Link to="/event_orgn/dashboard" className="block px-4 py-2 hover:bg-gray-100">
+                      Dashboard
+                    </Link>
+                  )}
                   <button
                     onClick={() => {
-                      localStorage.removeItem("isLogin");
                       localStorage.removeItem("jwtToken");
                       window.location.reload();
                     }}

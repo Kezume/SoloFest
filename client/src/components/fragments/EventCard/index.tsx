@@ -1,49 +1,50 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { FaCalendar, FaMapMarkerAlt, FaTicketAlt } from "react-icons/fa";
+import { FaCalendar, FaMapMarkerAlt } from "react-icons/fa";
+import { Link } from "react-router-dom";
 
 interface EventCardProps {
-  title: string;
-  date: string;
+  name: string;
+  start_date: string;
   location: string;
   place: string;
-  price: string;
-  image: string;
-  onBookClick?: () => void;
+  image_url: string;
+  id: number;
 }
 
-const EventCard: React.FC<EventCardProps> = ({ title, date, location, price, image, onBookClick, place }) => {
+const EventCard: React.FC<EventCardProps> = ({ name, start_date, location, image_url, id }) => {
   return (
-    <motion.div whileHover={{ y: -10 }} transition={{ duration: 0.3 }} className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
-      <div className="relative h-48 overflow-hidden">
-        <img src={image} alt={title} className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-500" />
+    <motion.div whileHover={{ y: -5 }} transition={{ duration: 0.2 }} className="bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 overflow-hidden">
+      <div className="relative aspect-[4/3] overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/30 z-10" />
+        <img src={image_url} alt={name} className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-500" />
       </div>
 
-      <div className="p-6">
-        <h3 className="text-xl font-semibold mb-3">{title}</h3>
+      <div className="p-5 space-y-4">
+        <div className="w-full h-12">
+          <h3 className="text-xl font-bold text-gray-800 line-clamp-2 hover:text-blue-600 transition-colors">{name}</h3>
+        </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center text-gray-600">
-            <FaCalendar className="mr-2" />
-            <span>{date}</span>
+        <div className="space-y-3">
+          <div className="flex items-center text-gray-600 hover:text-blue-500 transition-colors">
+            <FaCalendar className="w-4 h-4 mr-3 text-blue-500" />
+            <span className="text-sm">{start_date}</span>
           </div>
 
-          <div className="flex items-center text-gray-600">
-            <FaMapMarkerAlt className="mr-2" />
-            <span>
-              {location} ({place})
-            </span>
-          </div>
-
-          <div className="flex items-center text-gray-600">
-            <FaTicketAlt className="mr-2" />
-            <span>{price}</span>
+          <div className="flex items-center text-gray-600 hover:text-blue-500 transition-colors">
+            <FaMapMarkerAlt className="w-4 h-4 mr-3 text-blue-500" />
+            <span className="text-sm line-clamp-1">{location}</span>
           </div>
         </div>
 
-        <button onClick={onBookClick} className="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-300">
-          Book Now
-        </button>
+        <Link
+          to={`/event/${id}`}
+          className="block w-full mt-4 bg-blue-600 text-white text-center py-3 px-4 rounded-xl 
+                   hover:bg-blue-700 active:bg-blue-800 transition-colors duration-200 
+                   font-medium shadow-md hover:shadow-lg"
+        >
+          View Details
+        </Link>
       </div>
     </motion.div>
   );

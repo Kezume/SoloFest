@@ -3,6 +3,7 @@ import DashboardLayout from "../../components/layouts/DashboardLayout";
 import axios from "axios";
 import InputFormFragment from "../../components/fragments/InputFormFragment";
 import Title from "../../components/elements/Title";
+import LoadingSpinner from "../../components/fragments/LoadingSipnner";
 
 interface ProfileData {
   id: number;
@@ -43,7 +44,7 @@ const MemberDashboardPage = () => {
   }, []);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingSpinner />;
   }
 
   return (
@@ -80,7 +81,7 @@ const MemberDashboardPage = () => {
               <InputFormFragment type="text" name="jenis_kelamin" value={data.jenis_kelamin}>
                 Jenis Kelamin
               </InputFormFragment>
-              <InputFormFragment type="date" name="tanggal_lahir" value={data.tanggal_lahir?.split("T")[0]}>
+              <InputFormFragment type=" " name="tanggal_lahir" value={data.tanggal_lahir?.split("T")[0]}>
                 Tanggal Lahir
               </InputFormFragment>
               <InputFormFragment type="tel" name="no_telp" value={data.no_telp}>
