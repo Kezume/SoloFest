@@ -4,6 +4,17 @@ import InputFormFragment from "../../../components/fragments/InputFormFragment";
 import AuthLayout from "../../../components/layouts/AuthLayout";
 import axios from "axios";
 
+interface Province {
+  id: string;
+  name: string;
+}
+
+interface City {
+  id: string;
+  province_id: string;
+  name: string;
+}
+
 interface FormData {
   username: string;
   email: string;
@@ -29,7 +40,6 @@ interface FormField {
 
 const RegisterPage = () => {
   const [formSection, setFormSection] = useState(1);
-
   const [formData, setFormData] = useState<FormData>({
     // Section 1
     username: "",
@@ -49,67 +59,45 @@ const RegisterPage = () => {
     otpCode: "",
   });
 
-  const [provinces, setProvinces] = useState<Array<{ value: string; label: string; provinceId: string }>>([]);
-  // const [selectedProvinceId, setSelectedProvinceId] = useState<string>("");
-  useEffect(() => {
-    axios
-      .get("https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json")
-      .then((res) => {
-        // setProvinces(res.data.data);
-        const provinceData = res.data.map((province: { id: string; name: string }) => {
-          return {
-            provinceId: province.id,
-            value: province.name.toLowerCase().replace(/\s/g, "_"),
-            label: province.name,
-          };
-        });
-        setProvinces(provinceData);
-      })
-      .catch((err) => {
-        console.error(err);
-      });
-  }, []);
-
   // Add API related states
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [cityOptions, setCityOptions] = useState<Array<{ value: string; label: string }>>([]);
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
 
-  const handleProvinceChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedValue = e.target.value;
-    const selectedProvince = provinces.find((province) => province.value === selectedValue);
-
-    if (selectedProvince) {
-      // setSelectedProvinceId(selectedProvince.provinceId);
-      setFormData({ ...formData, provinsi: selectedValue, kota_kabupaten: "" });
-
+  useEffect(() => {
+    const fetchProvinces = async () => {
       try {
-        const response = await axios.get(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${selectedProvince.provinceId}.json`);
-
-        const cityData = response.data.map((city: { id: string; name: string }) => ({
-          value: city.name.toLowerCase().replace(/\s/g, "_"),
-          label: city.name,
-        }));
-
-        setCityOptions(cityData);
+        const response = await axios.get("https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json");
+        setProvinces(response.data);
       } catch (error) {
-        console.error("Error fetching cities:", error);
-        setCityOptions([]);
+        console.error("Failed to fetch provinces:", error);
       }
+    };
+
+    fetchProvinces();
+  }, []);
+
+  const fetchCities = async (provinceId: string) => {
+    try {
+      const response = await axios.get(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${provinceId}.json`);
+      setCities(response.data);
+    } catch (error) {
+      console.error("Failed to fetch cities:", error);
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
 
     if (name === "provinsi") {
-      handleProvinceChange(e as React.ChangeEvent<HTMLSelectElement>);
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
+      fetchCities(value);
+      setFormData((prev) => ({ ...prev, kota_kabupaten: "" })); // Reset city when province changes
     }
   };
 
@@ -122,14 +110,39 @@ const RegisterPage = () => {
           setError("Semua field harus diisi");
           return false;
         }
+
+        // Password validation rules
+        const passwordRegex = {
+          capital: /^[A-Z]/, // Starts with capital letter
+          number: /\d/, // Contains at least one number
+          symbol: /[!@#$%^&*(),.?":{}|<>]/, // Contains at least one symbol
+        };
+
+        if (!passwordRegex.capital.test(formData.password)) {
+          setError("Password harus diawali dengan huruf besar");
+          return false;
+        }
+
+        if (!passwordRegex.number.test(formData.password)) {
+          setError("Password harus mengandung minimal 1 angka");
+          return false;
+        }
+
+        if (!passwordRegex.symbol.test(formData.password)) {
+          setError("Password harus mengandung minimal 1 simbol");
+          return false;
+        }
+
         if (formData.password.length < 8) {
           setError("Password harus minimal 8 karakter");
           return false;
         }
+
         if (formData.password !== formData.kon) {
           setError("Password tidak cocok");
           return false;
         }
+
         if (!formData.email.includes("@")) {
           setError("Email tidak valid");
           return false;
@@ -183,7 +196,7 @@ const RegisterPage = () => {
             role: "member",
           };
 
-          const registerResponse = await axios.post("http://localhost:8000/api/auth/register", registerData);
+          const registerResponse = await axios.post("https://solofest.site/server/public/api/auth/register", registerData);
 
           if (registerResponse.data.message) {
             setFormSection(3);
@@ -207,7 +220,7 @@ const RegisterPage = () => {
       // Handle OTP verification on final step
       if (formSection === 3) {
         try {
-          const verifyResponse = await axios.post("http://localhost:8000/api/auth/verify-otp", {
+          const verifyResponse = await axios.post("https://solofest.site/server/public/api/auth/verify-otp", {
             email: formData.email,
             otp: formData.otpCode,
           });
@@ -244,8 +257,8 @@ const RegisterPage = () => {
       setIsLoading(true);
       setError(null);
 
-      const refreshResponse = await axios.post("http://localhost:8000/api/auth/refresh-otp", {
-        email: formData.email,
+      const refreshResponse = await axios.post("https://solofest.site/server/public/api/auth/refresh-otp", {
+        email: formData.email, // Change to use email instead of user_id
       });
 
       if (refreshResponse.data.message) {
@@ -290,13 +303,19 @@ const RegisterPage = () => {
         name: "provinsi",
         label: "Provinsi",
         type: "select",
-        options: provinces,
+        options: provinces.map((province) => ({
+          value: province.id,
+          label: province.name,
+        })),
       },
       {
         name: "kota_kabupaten",
         label: "Kota/Kabupaten",
         type: "select",
-        options: cityOptions,
+        options: cities.map((city) => ({
+          value: city.id,
+          label: city.name,
+        })),
       },
       { name: "kode_pos", label: "Kode Pos" },
       { name: "alamat_lengkap", label: "Alamat Lengkap", type: "textarea" },

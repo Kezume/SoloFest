@@ -17,6 +17,8 @@ return new class extends Migration
             $table->string('type'); // Jenis tiket (misalnya: VIP, Regular)
             $table->integer('price'); // Harga tiket
             $table->integer('quantity'); // Jumlah tiket tersedia
+            $table->string('logo')->nullable();
+            $table->string('location')->nullable();
             $table->timestamps();
         });
     }

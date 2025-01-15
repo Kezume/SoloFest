@@ -114,59 +114,92 @@ class EventController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, $eventId, $ticketId)
+    public function update(Request $request, $id)
     {
-        $ticket = Ticket::where('event_id', $eventId)->find($ticketId);
+        $event = Event::find($id);
 
-        if (!$ticket) {
+        if (!$event) {
             return response()->json([
-                'message' => 'Ticket not found.',
-                'data' => null
+                'message' => 'Event tidak ditemukan.',
             ], 404);
         }
 
-        // Cek otorisasi untuk mengupdate tiket
-        $this->authorize('update', $ticket);
-
+        // Validasi data permintaan
         $validator = Validator::make($request->all(), [
-            'type' => 'sometimes|required|string|max:255',
-            'price' => 'sometimes|required|numeric|min:0',
-            'quantity' => 'sometimes|required|integer|min:0',
+            'name' => 'sometimes|required|max:255',
+            'description' => 'nullable|max:1000',
+            'location' => 'sometimes|required|max:255',
+            'start_date' => 'sometimes|required|date',
+            'end_date' => 'sometimes|required|date|after_or_equal:start_date',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048', // Validasi untuk gambar baru
         ]);
 
         if ($validator->fails()) {
             return response()->json([
-                'message' => 'Validation errors.',
-                'data' => $validator->errors()
+                'message' => 'Validasi gagal',
+                'errors' => $validator->errors(),
             ], 422);
         }
 
-        $ticket->update($validator->validated());
+        $imageUrl = $event->image_url; // URL gambar lama
+
+        // Proses unggah gambar jika ada
+        if ($request->hasFile('image')) {
+            try {
+                // Hapus gambar lama dari Cloudinary jika ada
+                if ($imageUrl) {
+                    $publicId = pathinfo(parse_url($imageUrl, PHP_URL_PATH), PATHINFO_FILENAME);
+                    Cloudinary::destroy("events/{$publicId}");
+                }
+
+                // Unggah gambar baru ke Cloudinary
+                $uploadedFile = $request->file('image');
+                $uploadResult = Cloudinary::upload($uploadedFile->getRealPath(), [
+                    'folder' => 'events',
+                ]);
+                $imageUrl = $uploadResult->getSecurePath();
+            } catch (\Exception $e) {
+                Log::error('Cloudinary Upload Error: ' . $e->getMessage());
+                return response()->json([
+                    'message' => 'Terjadi kesalahan saat mengunggah gambar.',
+                    'error' => $e->getMessage(),
+                ], 500);
+            }
+        }
+
+        // Update data event
+        $event->update(array_merge($validator->validated(), ['image_url' => $imageUrl]));
 
         return response()->json([
-            'message' => 'Ticket updated successfully.',
-            'data' => $ticket
-        ]);
+            'message' => 'Event berhasil diperbarui.',
+            'data' => $event,
+        ], 200);
     }
 
-    public function destroy($eventId, $ticketId)
-    {
-        $ticket = Ticket::where('event_id', $eventId)->find($ticketId);
 
-        if (!$ticket) {
+    public function destroy($eventId)
+    {
+        $event = Event::find($eventId);
+
+        if (!$event) {
             return response()->json([
-                'message' => 'Ticket not found.',
+                'message' => 'Event not found.',
                 'data' => null
             ], 404);
         }
 
-        // Cek otorisasi untuk menghapus tiket
-        $this->authorize('delete', $ticket);
+        Log::info('Deleting tickets for event ID:', ['eventId' => $eventId]);
 
-        $ticket->delete();
+        // Hapus tiket terkait
+        $deletedTickets = $event->tickets()->delete();
+        Log::info('Number of tickets deleted:', ['count' => $deletedTickets]);
+
+        // Hapus event
+        $event->delete();
+        Log::info('Event deleted:', ['eventId' => $eventId]);
 
         return response()->json([
-            'message' => 'Ticket deleted successfully.',
+            'message' => 'Event and related tickets deleted successfully.',
             'data' => null
         ]);
     }

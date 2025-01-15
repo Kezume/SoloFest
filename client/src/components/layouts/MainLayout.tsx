@@ -9,11 +9,11 @@ interface MainLayoutProps {
 const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
   return (
     <>
-      <div className="w-full container mx-auto px-5">
+      <div className="w-full">
         <NavbarFragment />
-        {children}
+        <div className=" container mx-auto px-5">{children}</div>
+        <Footer />
       </div>
-      <Footer />
     </>
   );
 };

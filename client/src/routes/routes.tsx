@@ -3,13 +3,13 @@ import Home from "../views/Home";
 import RegisterPage from "../pages/AuthPages/RegisterPage";
 import LoginPage from "../pages/AuthPages/LoginPage";
 import ProtectedRoute from "../components/ProtectedRoute";
+import EventPage from "../pages/EventPages";
+import MemberDashboardPage from "../pages/MemberDashboardPage";
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: localStorage.getItem("jwtToken") ? 
-      <Navigate to="/home" replace /> : 
-      <Navigate to="/login" replace />,
+    element: localStorage.getItem("jwtToken") ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />,
   },
   {
     path: "/home",
@@ -17,6 +17,24 @@ const router = createBrowserRouter([
       // <ProtectedRoute>
         <Home />
       // </ProtectedRoute> 
+    ),
+  },
+
+  {
+    path: "/event",
+    element: (
+      <ProtectedRoute>
+        <EventPage />
+      </ProtectedRoute>
+    ),
+  },
+
+  {
+    path: "/profile/dashboard",
+    element: (
+      <ProtectedRoute>
+        <MemberDashboardPage />
+      </ProtectedRoute>
     ),
   },
   {
