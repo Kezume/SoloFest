@@ -28,7 +28,7 @@ const LoginPage = () => {
       const token = response.data.data.access_token;
       localStorage.setItem("jwtToken", token);
       if (token !== "") {
-        window.location.href = "/home";
+        window.location.href = "/#/home";
       }
     } catch (error: any) {
       if (error.response) {

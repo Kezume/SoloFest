@@ -313,7 +313,7 @@ const RegisterPage = () => {
         label: "Kota/Kabupaten",
         type: "select",
         options: cities.map((city) => ({
-          value: city.id,
+          value: city.name,  // Changed from city.id to city.name
           label: city.name,
         })),
       },
@@ -326,18 +326,18 @@ const RegisterPage = () => {
 
   const renderControlButtons = () => {
     return (
-      <div className="flex gap-4">
+      <div className="flex gap-4 w-full">
         {formSection > 1 && (
-          <Button type="button" buttonStyle="bg-gray-500 py-2 px-6 rounded text-white" onClick={() => setFormSection((prev) => prev - 1)} disabled={isLoading}>
+          <Button type="button" buttonStyle="w-full bg-gray-500 py-2 px-6 rounded text-white" onClick={() => setFormSection((prev) => prev - 1)} disabled={isLoading}>
             Sebelumnya
           </Button>
         )}
         {formSection === 3 && (
-          <Button type="button" buttonStyle="bg-blue-500 py-2 px-6 rounded text-white" onClick={handleRefreshOtp} disabled={isLoading}>
+          <Button type="button" buttonStyle="w-full bg-blue-500 py-2 px-6 rounded text-white" onClick={handleRefreshOtp} disabled={isLoading}>
             Kirim Ulang OTP
           </Button>
         )}
-        <Button type="button" buttonStyle={`bg-primary py-2 px-6 rounded text-white`} onClick={handleNextStep} disabled={isLoading}>
+        <Button type="button" buttonStyle={`w-full bg-primary py-2 px-6 rounded text-white`} onClick={handleNextStep} disabled={isLoading}>
           {formSection === 3 ? "Verifikasi" : "Selanjutnya"}
         </Button>
       </div>
@@ -378,6 +378,7 @@ const RegisterPage = () => {
       onSubmit={(e) => {
         e.preventDefault();
       }}
+      renderControlButtons={renderControlButtons}
     >
       <div className="w-full max-w-4xl  space-y-6">
         {renderFormFields()}
@@ -387,7 +388,6 @@ const RegisterPage = () => {
               <div key={i} className={`w-3 h-3 rounded-full ${i + 1 === formSection ? "bg-primary" : "bg-gray-300"}`} />
             ))}
           </div>
-          {renderControlButtons()}
         </div>
         {isLoading && <div className="text-center text-primary">Memproses...</div>}
       </div>
